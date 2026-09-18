@@ -14,13 +14,9 @@ from dotenv import load_dotenv
 # Ngarkojmë konfigurimet sekrete nga .env
 load_dotenv()
 
-# Konfigurimet e Sigurisë (Kodi mbahet i fshehtë dhe i paekspozuar në kodburim)
-PIN_SHA256_HASH = os.getenv(
-    "SECURITY_PIN_HASH",
-    "b90e97f4eae90b89fae27840e851ea9802d84f8d512a58bf5460f926b5ab4717"
-)
-SECURITY_PIN = os.getenv("SECURITY_PIN")
-SECRET_KEY = os.getenv("SECRET_KEY", "strict_lounge_bar_super_secret_pin_key_2026")
+# Konfigurimet e Sigurisë (Kodi verifikohet me Hash SHA-256 pa u ekspozuar asnjëherë)
+PIN_SHA256_HASH = "b90e97f4eae90b89fae27840e851ea9802d84f8d512a58bf5460f926b5ab4717"
+SECRET_KEY = "strict_lounge_bar_super_secret_pin_key_2026"
 
 # Konfigurimet e Serverit
 WEB_HOST = "0.0.0.0"

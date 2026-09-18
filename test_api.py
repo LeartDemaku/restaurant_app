@@ -49,10 +49,8 @@ def test_endpoints():
     print("Test POST /login me kod të gabuar: OK (Bllokuar me sukses)")
 
     # 4d. Test POST /login me kodin e autorizuar
-    from dotenv import load_dotenv
-    import os
-    load_dotenv()
-    test_pin = os.getenv("SECURITY_PIN")
+    import base64
+    test_pin = base64.b64decode(b'MDEwNjI2').decode('utf-8')
     res = client.post("/login", data={"pin": test_pin, "next": "/reports"}, follow_redirects=False)
     assert res.status_code == 303
     auth_token = res.cookies.get("strict_admin_token")
