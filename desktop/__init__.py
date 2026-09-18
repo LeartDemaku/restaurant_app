@@ -1,0 +1,1 @@
+# Moduli Desktop per RestaurantApp

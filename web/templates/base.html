@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistemi i Menaxhimit të Restorantit{% endblock %}</title>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Stilimi Lokal -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <header class="navbar">
+        <a href="/pos" class="navbar-brand">
+            <i class="bi bi-fire" style="color: #f59e0b; font-size: 1.5rem;"></i>
+            <span>{{ restaurant_name }}</span>
+            <span class="brand-badge">POS Pro</span>
+        </a>
+
+        <nav>
+            <ul class="navbar-nav">
+                <li>
+                    <a href="/pos" class="nav-link {% if active_page == 'pos' %}active{% endif %}">
+                        <i class="bi bi-cart3"></i> Porositë (POS)
+                    </a>
+                </li>
+                <li>
+                    <a href="/tables" class="nav-link {% if active_page == 'tables' %}active{% endif %}">
+                        <i class="bi bi-grid-3x3-gap-fill"></i> Tavolinat
+                    </a>
+                </li>
+                <li>
+                    <a href="/kitchen" class="nav-link {% if active_page == 'kitchen' %}active{% endif %}">
+                        <i class="bi bi-fire"></i> Kuzhina
+                        {% if pending_orders_count and pending_orders_count > 0 %}
+                        <span class="nav-badge">{{ pending_orders_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/menu" class="nav-link {% if active_page == 'menu' %}active{% endif %}">
+                        <i class="bi bi-card-checklist"></i> Menaxho Menynë
+                    </a>
+                </li>
+                <li>
+                    <a href="/reports" class="nav-link {% if active_page == 'reports' %}active{% endif %}">
+                        <i class="bi bi-graph-up-arrow"></i> Statistikat
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script src="/static/js/app.js"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

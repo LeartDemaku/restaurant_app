@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Ekrani i Kuzhinës (KDS){% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h2 style="font-weight: 800; color: var(--accent-color);">
+            <i class="bi bi-fire" style="color: #e74c3c;"></i> Ekrani i Kuzhinës (KDS)
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+            Porositë aktive për përgatitje. Ekrani rifreskohet automatikisht çdo disa sekonda.
+        </p>
+    </div>
+    <div>
+        <button class="btn btn-outline" onclick="window.location.reload()">
+            <i class="bi bi-arrow-clockwise"></i> Rifresko Tani
+        </button>
+    </div>
+</div>
+
+{% if not orders %}
+<div style="background: white; padding: 60px; text-align: center; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+    <i class="bi bi-check-circle-fill" style="font-size: 3rem; color: var(--color-success);"></i>
+    <h3 style="margin-top: 15px; color: var(--accent-color);">Nuk ka porosi në pritje!</h3>
+    <p style="color: var(--text-muted);">Të gjitha porositë janë përgatitur me sukses.</p>
+</div>
+{% else %}
+<div class="kitchen-grid">
+    {% for o in orders %}
+    <div class="kitchen-card">
+        <div class="kitchen-card-header {% if o.status == 'E Re' %}status-re{% elif o.status == 'Në Përgatitje' %}status-pergatitje{% else %}status-gati{% endif %}">
+            <div>
+                <strong style="font-size: 1.1rem;">Tavolina {{ o.table_number }}</strong>
+                <div style="font-size: 0.8rem; opacity: 0.9;">Porosia #{{ o.id }} &bull; {{ o.waiter_name }}</div>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-size: 0.8rem; background: rgba(0,0,0,0.2); padding: 3px 8px; border-radius: 6px;">
+                    {{ o.created_at.split(' ')[1] if ' ' in o.created_at else o.created_at }}
+                </span>
+                <div style="font-size: 0.75rem; margin-top: 3px; font-weight: bold;">{{ o.status }}</div>
+            </div>
+        </div>
+
+        <ul class="kitchen-items-list">
+            {% for item in o['items'] %}
+            <li class="kitchen-item-row">
+                <span>
+                    <strong>{{ item.quantity }}x</strong> {{ item.item_name }}
+                    {% if item.notes %}
+                    <br><small style="color: #e74c3c; font-weight: bold;">Shënim: {{ item.notes }}</small>
+                    {% endif %}
+                </span>
+                <span style="font-weight: 600; color: var(--text-muted);">{{ "%.2f"|format(item.subtotal) }}€</span>
+            </li>
+            {% endfor %}
+            {% if o.notes %}
+            <li style="padding-top: 10px; color: #d35400; font-size: 0.88rem;">
+                <i class="bi bi-info-circle"></i> <strong>Koment:</strong> {{ o.notes }}
+            </li>
+            {% endif %}
+        </ul>
+
+        <div class="kitchen-card-footer">
+            {% if o.status == 'E Re' %}
+            <button class="btn btn-warning" style="flex: 1;" onclick="updateKitchenStatus({{ o.id }}, 'Në Përgatitje')">
+                <i class="bi bi-play-fill"></i> Përgatit
+            </button>
+            {% elif o.status == 'Në Përgatitje' %}
+            <button class="btn btn-success" style="flex: 1;" onclick="updateKitchenStatus({{ o.id }}, 'Gati')">
+                <i class="bi bi-check-all"></i> Gati
+            </button>
+            {% elif o.status == 'Gati' %}
+            <button class="btn btn-primary" style="flex: 1;" onclick="openPaymentModal({{ o.id }}, {{ o.total_amount }})">
+                <i class="bi bi-cash-coin"></i> Arkëto
+            </button>
+            {% endif %}
+            <a href="/invoice/{{ o.id }}" target="_blank" class="btn btn-outline" title="Shiko Faturën">
+                <i class="bi bi-receipt"></i>
+            </a>
+            <button class="btn btn-danger" onclick="deleteOrder({{ o.id }})" title="Fshij / Anulo Porosinë">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

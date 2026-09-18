@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Statistikat dhe Raportet Ditore{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div>
+        <h2 style="font-weight: 800; color: var(--accent-color);">
+            <i class="bi bi-graph-up-arrow" style="color: var(--color-success);"></i> Statistikat dhe Pasqyra Financiare
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+            Raporti i shitjeve, xhiroja ditore dhe artikujt më të kërkuar.
+        </p>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <button type="button" class="btn btn-danger" style="padding: 8px 14px; font-size: 0.85rem;" onclick="clearAllOrders()">
+            <i class="bi bi-trash-fill"></i> Pastro të Gjitha Porositë
+        </button>
+        <form method="GET" action="/reports" style="display: flex; gap: 8px; align-items: center;">
+            <input type="date" name="date" value="{{ target_date }}" class="search-input" style="padding: 8px 12px;">
+            <button type="submit" class="btn btn-primary" style="padding: 8px 16px;">
+                <i class="bi bi-filter"></i> Filtro
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- KARTAT STATISTIKORE -->
+<div class="stats-cards">
+    <div class="stat-card" style="border-color: #27ae60;">
+        <div class="stat-label">Xhiroja Totale Ditore</div>
+        <div class="stat-val" style="color: #27ae60;">{{ "%.2f"|format(stats.total_revenue) }} €</div>
+    </div>
+    <div class="stat-card" style="border-color: #2980b9;">
+        <div class="stat-label">Numri Total i Porosive</div>
+        <div class="stat-val" style="color: #2980b9;">{{ stats.total_orders }}</div>
+    </div>
+    <div class="stat-card" style="border-color: #e67e22;">
+        <div class="stat-label">Mesatarja për Faturë</div>
+        <div class="stat-val" style="color: #e67e22;">{{ "%.2f"|format(stats.average_order) }} €</div>
+    </div>
+</div>
+
+<!-- RAPORTI I SHITJEVE SIPAS KAMARIERËVE -->
+<div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 24px;">
+    <h3 style="font-size: 1.2rem; color: var(--accent-color); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+        <i class="bi bi-people-fill" style="color: var(--primary-color);"></i> Xhiroja dhe Shitjet sipas Kamarierëve
+    </h3>
+    {% if not stats.waiter_stats %}
+    <p style="color: var(--text-muted); font-size: 0.9rem;">Nuk ka shitje të regjistruara për kamarierët në këtë datë.</p>
+    {% else %}
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Kamarieri</th>
+                <th style="text-align: center;">Numri i Porosive</th>
+                <th style="text-align: right;">Xhiroja Totale (€)</th>
+                <th style="text-align: right;">Mesatarja për Porosi</th>
+                <th style="text-align: right;">Përqindja e Xhiros</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for w in stats.waiter_stats %}
+            {% set pct = (w.total_sales / stats.total_revenue * 100) if stats.total_revenue > 0 else 0 %}
+            <tr>
+                <td>
+                    <strong style="font-size: 1rem;">👤 {{ w.waiter_name }}</strong>
+                </td>
+                <td style="text-align: center; font-weight: 600;">
+                    {{ w.total_orders }} porosi
+                </td>
+                <td style="text-align: right; font-size: 1.1rem; font-weight: 800; color: var(--color-success);">
+                    {{ "%.2f"|format(w.total_sales) }} €
+                </td>
+                <td style="text-align: right; font-weight: 600; color: #e67e22;">
+                    {{ "%.2f"|format(w.average_sales) }} €
+                </td>
+                <td style="text-align: right; font-weight: bold; color: var(--primary-color);">
+                    {{ "%.1f"|format(pct) }}%
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 24px;">
+    <!-- ARTIKUJT MË TË SHITUR -->
+    <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <h3 style="font-size: 1.1rem; color: var(--accent-color); margin-bottom: 16px;">
+            <i class="bi bi-trophy-fill" style="color: #f1c40f;"></i> Top Artikujt e Ditës
+        </h3>
+        {% if not stats.popular_items %}
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Ende nuk ka shitje për këtë datë.</p>
+        {% else %}
+        <ul style="list-style: none;">
+            {% for p in stats.popular_items %}
+            <li style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border-color);">
+                <div>
+                    <strong>{{ loop.index }}. {{ p.item_name }}</strong>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">{{ p.total_qty }} copë të shitura</div>
+                </div>
+                <div style="font-weight: 700; color: #27ae60;">
+                    {{ "%.2f"|format(p.total_sum) }} €
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+
+    <!-- LISTA E POROSIVE TË DITËS -->
+    <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow-x: auto;">
+        <h3 style="font-size: 1.1rem; color: var(--accent-color); margin-bottom: 16px;">
+            <i class="bi bi-clock-history"></i> Porositë e Ditës
+        </h3>
+        {% if not stats.orders %}
+        <p style="color: var(--text-muted); font-size: 0.9rem;">Nuk ka porosi të regjistruara për këtë datë.</p>
+        {% else %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Ora</th>
+                    <th>Tavolina</th>
+                    <th>Kamarieri</th>
+                    <th>Totali</th>
+                    <th>Statusi</th>
+                    <th style="text-align: right;">Veprime</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for o in stats.orders %}
+                <tr>
+                    <td>{{ o.created_at.split(' ')[1] if ' ' in o.created_at else o.created_at }}</td>
+                    <td><strong>Tavolina {{ o.table_number }}</strong></td>
+                    <td>{{ o.waiter_name }}</td>
+                    <td style="font-weight: 700;">{{ "%.2f"|format(o.total_amount) }} €</td>
+                    <td>
+                        <span class="table-status-pill pill-{% if o.status == 'E Përfunduar' %}e_lire{% elif o.status == 'E Re' %}e_zene{% else %}e_rezervuar{% endif %}">
+                            {{ o.status }}
+                        </span>
+                    </td>
+                    <td style="text-align: right; display: flex; justify-content: flex-end; gap: 6px;">
+                        {% if o.status != 'E Përfunduar' %}
+                        <button type="button" class="btn btn-success" style="padding: 4px 8px; font-size: 0.8rem;" onclick="openPaymentModal({{ o.id }}, {{ o.total_amount }})" title="Arkëto me kalkulator kusuri">
+                            <i class="bi bi-cash-coin"></i> Arkëto
+                        </button>
+                        {% endif %}
+                        <a href="/invoice/{{ o.id }}" target="_blank" class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem; display: inline-flex;" title="Shiko Faturën">
+                            <i class="bi bi-receipt"></i>
+                        </a>
+                        <button type="button" class="btn btn-danger" style="padding: 4px 8px; font-size: 0.8rem;" onclick="deleteOrder({{ o.id }})" title="Fshij Porosinë">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

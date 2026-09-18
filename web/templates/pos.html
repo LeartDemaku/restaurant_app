@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Kasa POS - Porosi e Re{% endblock %}
+
+{% block content %}
+<div class="pos-container">
+    <!-- KATALOGU I ARTIKUJVE -->
+    <div class="pos-catalog">
+        <!-- KATEGORITË ME BUTONA TË PERSONALIZUAR -->
+        <div class="category-tabs">
+            <button class="cat-btn active" data-cat="all">
+                <i class="bi bi-grid"></i> Të Gjitha
+            </button>
+            {% for cat in categories %}
+            <button class="cat-btn" data-cat="{{ cat.name }}">
+                <i class="bi {{ cat.icon }}"></i> {{ cat.name }}
+            </button>
+            {% endfor %}
+        </div>
+
+        <!-- SEARCH INPUT -->
+        <div class="search-wrapper">
+            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Kërko artikullin (p.sh. Macchiato, Sufllaqe, Pica)...">
+        </div>
+
+        <!-- RRJETI I ARTIKUJVE -->
+        <div class="items-grid" id="itemsGrid">
+            {% for item in items %}
+            <div class="item-card cat-{{ item.category_name|lower }}" 
+                 data-category="{{ item.category_name }}"
+                 onclick="addToCart({{ item.id }}, '{{ item.name }}', {{ item.price }})">
+                <div class="item-title">{{ item.name }}</div>
+                <div class="item-price">{{ "%.2f"|format(item.price) }} €</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- SHPORTA E POROSISË (SIDEBAR) -->
+    <div class="pos-cart">
+        <div class="cart-header">
+            <h3 style="display:flex; align-items:center; gap:8px;">
+                <i class="bi bi-receipt" style="color:var(--primary-color);"></i>
+                Porosia Aktuale
+            </h3>
+            <div class="cart-inputs">
+                <div>
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted);">Tavolina:</label>
+                    <select id="tableSelect">
+                        {% for t in tables %}
+                        <option value="{{ t.table_number }}">Tavolina {{ t.table_number }} ({{ t.section }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted);">Emri i Kamarierit:</label>
+                    <input type="text" id="waiterInput" class="search-input" style="padding: 7px 10px; font-size: 0.9rem;" placeholder="Shkruani emrin tuaj..." required>
+                </div>
+            </div>
+        </div>
+
+        <!-- ARTIKUJT NË SHPORTË -->
+        <div class="cart-items" id="cartItems">
+            <!-- Mbushja me JavaScript -->
+        </div>
+
+        <!-- SHËNIME SHTESË PËR KUZHINËN -->
+        <div style="margin-bottom: 12px;">
+            <input type="text" id="orderNotes" class="search-input" style="padding: 8px 10px; font-size: 0.85rem;" placeholder="Shënime për kuzhinën (opsionale)...">
+        </div>
+
+        <!-- TOTALI DHE BUTONAT -->
+        <div class="cart-summary">
+            <div class="cart-total-row">
+                <span>TOTALI:</span>
+                <span id="cartTotal">0.00 €</span>
+            </div>
+        </div>
+
+        <div class="cart-actions">
+            <button class="btn btn-danger" onclick="clearCart()">
+                <i class="bi bi-trash"></i> Pastro
+            </button>
+            <button class="btn btn-outline" onclick="window.print()">
+                <i class="bi bi-printer"></i> Printo
+            </button>
+            <button class="btn btn-success btn-full" onclick="submitOrder()">
+                <i class="bi bi-send-check"></i> Dërgo Porosinë në Kuzhinë
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

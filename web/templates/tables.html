@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Harta e Tavolinave{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div>
+        <h2 style="font-weight: 800; color: var(--accent-color);">
+            <i class="bi bi-grid-3x3-gap-fill" style="color: var(--primary-color);"></i> Harta e Tavolinave
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+            Shikoni statusin e të gjitha tavolinave në kohë reale. Klikoni për të hapur porosi të re ose për të menaxhuar faturën.
+        </p>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center;">
+        <span class="table-status-pill pill-e_lire"><i class="bi bi-circle-fill"></i> E Lirë</span>
+        <span class="table-status-pill pill-e_zene"><i class="bi bi-circle-fill"></i> E Zënë</span>
+        <span class="table-status-pill pill-e_rezervuar"><i class="bi bi-circle-fill"></i> E Rezervuar</span>
+    </div>
+</div>
+
+<div class="tables-grid">
+    {% for t in tables %}
+    <div class="table-card {{ t.status }}">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="table-num">Tavolina {{ t.table_number }}</div>
+            <span class="table-status-pill pill-{{ t.status }}">
+                {% if t.status == 'e_lire' %}E Lirë{% elif t.status == 'e_zene' %}E Zënë{% else %}E Rezervuar{% endif %}
+            </span>
+        </div>
+        <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">
+            {{ t.section }} &bull; Kapaciteti: {{ t.capacity }} persona
+        </div>
+
+        {% if t.active_order %}
+        <div style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 12px;">
+            <div style="font-size: 0.8rem; color: var(--text-muted);">Kamarieri: <strong>{{ t.active_order.waiter_name }}</strong></div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: #e74c3c; margin-top: 4px;">
+                Totali: {{ "%.2f"|format(t.active_order.total_amount) }} €
+            </div>
+        </div>
+        <div style="display: flex; gap: 6px;">
+            <a href="/pos?table={{ t.table_number }}" class="btn btn-outline" style="flex: 1; padding: 8px; font-size: 0.85rem;">
+                <i class="bi bi-plus"></i> Shto
+            </a>
+            <a href="/invoice/{{ t.active_order.id }}" target="_blank" class="btn btn-primary" style="flex: 1; padding: 8px; font-size: 0.85rem;">
+                <i class="bi bi-receipt"></i> Fatura
+            </a>
+        </div>
+        {% else %}
+        <div style="margin-top: 24px;">
+            <a href="/pos?table={{ t.table_number }}" class="btn btn-success" style="width: 100%; padding: 10px; font-size: 0.9rem;">
+                <i class="bi bi-cart-plus"></i> Hap Porosi
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

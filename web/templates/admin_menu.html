@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Menaxhimi i Menysë{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+    <div>
+        <h2 style="font-weight: 800; color: var(--accent-color);">
+            <i class="bi bi-card-checklist" style="color: var(--primary-color);"></i> Menaxhimi i Menysë dhe Çmimeve
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem;">
+            Shtoni artikuj të rinj, modifikoni çmimet, ose përditësoni sasinë e stokut.
+        </p>
+    </div>
+    <div>
+        <button class="btn btn-primary" onclick="toggleAddForm()">
+            <i class="bi bi-plus-circle"></i> Shto Artikull të Ri
+        </button>
+    </div>
+</div>
+
+<!-- FORMA E SHTIMIT TË ARTIKULLIT TË RI (HIDDEN BY DEFAULT) -->
+<div id="addFormCard" style="display: none; background: white; border-radius: 12px; padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); margin-bottom: 24px;">
+    <h3 style="margin-bottom: 16px; color: var(--accent-color);">Shto Artikull të Ri në Meny</h3>
+    <form action="/admin/menu/add" method="POST" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+        <div>
+            <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Emri i Artikullit:</label>
+            <input type="text" name="name" required class="search-input" placeholder="p.sh. Pica Rustica">
+        </div>
+        <div>
+            <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Kategoria:</label>
+            <select name="category_id" required class="search-input">
+                {% for c in categories %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Çmimi (€):</label>
+            <input type="number" step="0.10" min="0" name="price" required class="search-input" placeholder="4.50">
+        </div>
+        <div>
+            <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Sasia në Stok:</label>
+            <input type="number" name="stock_quantity" value="100" class="search-input">
+        </div>
+        <div style="grid-column: 1 / -1;">
+            <label style="display:block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">Përshkrimi (opsional):</label>
+            <input type="text" name="description" class="search-input" placeholder="Përbërësit kryesorë...">
+        </div>
+        <div style="grid-column: 1 / -1; display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="btn btn-outline" onclick="toggleAddForm()">Anulo</button>
+            <button type="submit" class="btn btn-success">Ruaj Artikullin</button>
+        </div>
+    </form>
+</div>
+
+<!-- TABELA E ARTIKUJVE TË MENYSË -->
+<div style="background: white; border-radius: 12px; padding: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); overflow-x: auto;">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Emri i Artikullit</th>
+                <th>Kategoria</th>
+                <th>Çmimi</th>
+                <th>Stoku</th>
+                <th>Përshkrimi</th>
+                <th style="text-align: right;">Veprime</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td><strong>#{{ item.id }}</strong></td>
+                <td style="font-weight: 600;">{{ item.name }}</td>
+                <td>
+                    <span style="background: {{ item.category_color }}22; color: {{ item.category_color }}; padding: 4px 10px; border-radius: 8px; font-weight: bold; font-size: 0.82rem;">
+                        {{ item.category_name }}
+                    </span>
+                </td>
+                <td style="font-weight: 700; color: #e67e22;">{{ "%.2f"|format(item.price) }} €</td>
+                <td>
+                    {% if item.stock_quantity < 10 %}
+                    <span style="color: #e74c3c; font-weight: bold;">{{ item.stock_quantity }} (Ulët)</span>
+                    {% else %}
+                    <span>{{ item.stock_quantity }} copë</span>
+                    {% endif %}
+                </td>
+                <td style="color: var(--text-muted); font-size: 0.85rem;">{{ item.description or '-' }}</td>
+                <td style="text-align: right;">
+                    <form action="/admin/menu/delete/{{ item.id }}" method="POST" style="display: inline;" onsubmit="return confirm('A jeni të sigurt që dëshironi ta fshini artikullin {{ item.name }}?')">
+                        <button type="submit" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem; display: inline-flex;">
+                            <i class="bi bi-trash"></i> Fshij
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function toggleAddForm() {
+    const card = document.getElementById('addFormCard');
+    card.style.display = card.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+{% endblock %}
