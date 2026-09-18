@@ -1,5 +1,5 @@
 // ==========================================================
-// SISTEMI I MENAXHIMIT TË RESTORANTIT - JAVASCRIPT KRYESOR
+// SISTEMI I MENAXHIMIT TË RESTAURANTIT - JAVASCRIPT KRYESOR
 // Përfshin menaxhimin interaktiv të shportës (+, -, fshirje)
 // ==========================================================
 
@@ -150,7 +150,7 @@ function printoFaturen() {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Faturë Restoranti</title>
+            <title>Faturë - STRICT LOUNGE & BAR</title>
             <style>
                 body {
                     font-family: 'Consolas', monospace;
@@ -163,7 +163,7 @@ function printoFaturen() {
             </style>
         </head>
         <body>
-=== FATURË RESTORANTI ===
+=== STRICT LOUNGE & BAR ===
 Data: ${dataStr}
 ----------------------------------------
 Artikulli                Sasia    Totali
@@ -197,7 +197,7 @@ async function ruajPorosi() {
         return;
     }
 
-    const numriTavolinesStr = prompt("Shkruani numrin e tavolinës:", "1");
+    const numriTavolinesStr = prompt("Shkruani numrin e tavolinës (Brenda: 1-15, Terasë: 16-35, Jashtë: 36-50):", "1");
     if (numriTavolinesStr === null) return; // Klikoi cancel
     if (!numriTavolinesStr.trim()) {
         alert("Numri i tavolinës është i detyrueshëm!");

@@ -1,9 +1,9 @@
 import socket
 from pathlib import Path
 
-# Konfigurimet kryesore të restorantit
-APP_NAME = "Sistemi i Menaxhimit të Restorantit"
-RESTAURANT_NAME = "RESTORANT DELICIOUS"
+# Konfigurimet kryesore të restaurantit
+APP_NAME = "Sistemi i Menaxhimit të Restaurantit"
+RESTAURANT_NAME = "STRICT LOUNGE & BAR"
 RESTAURANT_ADDRESS = "Rruga Kryesore, Prishtinë"
 RESTAURANT_PHONE = "+383 44 123 456"
 CURRENCY = "€"
@@ -21,7 +21,6 @@ def get_local_ip() -> str:
     """Gjen IP adresën lokale të kompjuterit në rrjetin Wi-Fi."""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        # Nuk dërgon realisht të dhëna, vetëm përcakton rrugën e daljes
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
         s.close()

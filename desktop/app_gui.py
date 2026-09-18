@@ -19,7 +19,7 @@ ctk.set_default_color_theme("blue")
 
 
 class RestaurantAppGUI(ctk.CTk):
-    """Aplikacioni Kryesor Desktop per Menaxhimin e Restorantit."""
+    """Aplikacioni Kryesor Desktop per Menaxhimin e Restaurantit."""
 
     def __init__(self):
         super().__init__()

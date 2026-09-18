@@ -93,7 +93,7 @@ class ReceiptPreviewDialog(ctk.CTkToplevel):
 
     def __init__(self, parent, receipt_text: str):
         super().__init__(parent)
-        self.title("Fatura e Restorantit")
+        self.title("Fatura - STRICT LOUNGE & BAR")
         self.geometry("440x560")
         self.resizable(False, False)
 

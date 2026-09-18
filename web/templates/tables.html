@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Harta e Tavolinave{% endblock %}
+{% block title %}Harta e Tavolinave - STRICT LOUNGE & BAR{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+<div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
     <div>
         <h2 style="font-weight: 800; color: var(--accent-color);">
-            <i class="bi bi-grid-3x3-gap-fill" style="color: var(--primary-color);"></i> Harta e Tavolinave
+            <i class="bi bi-grid-3x3-gap-fill" style="color: var(--primary-color);"></i> Harta e Tavolinave - STRICT LOUNGE & BAR
         </h2>
         <p style="color: var(--text-muted); font-size: 0.9rem;">
-            Shikoni statusin e të gjitha tavolinave në kohë reale. Klikoni për të hapur porosi të re ose për të menaxhuar faturën.
+            50 Tavolina të ndara në sektorë: Brenda (15), Terasë (20) dhe Jashtë (15).
         </p>
     </div>
     <div style="display: flex; gap: 12px; align-items: center;">
@@ -19,17 +19,33 @@
     </div>
 </div>
 
+<!-- FILTRAT E SEKTOREVE TË TAVOLINAVE -->
+<div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+    <button type="button" class="btn btn-primary section-filter-btn active" onclick="filtroSektorin('all', this)">
+        <i class="bi bi-grid-fill"></i> Të Gjitha (50)
+    </button>
+    <button type="button" class="btn btn-outline section-filter-btn" onclick="filtroSektorin('Brenda', this)">
+        <i class="bi bi-house-door-fill"></i> Brenda (15 tavolina)
+    </button>
+    <button type="button" class="btn btn-outline section-filter-btn" onclick="filtroSektorin('Terasë', this)">
+        <i class="bi bi-sun-fill" style="color: #f39c12;"></i> Terasë (20 tavolina)
+    </button>
+    <button type="button" class="btn btn-outline section-filter-btn" onclick="filtroSektorin('Jashtë', this)">
+        <i class="bi bi-tree-fill" style="color: #27ae60;"></i> Jashtë (15 tavolina)
+    </button>
+</div>
+
 <div class="tables-grid">
     {% for t in tables %}
-    <div class="table-card {{ t.status }}">
+    <div class="table-card {{ t.status }}" data-section="{{ t.section }}">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div class="table-num">Tavolina {{ t.table_number }}</div>
             <span class="table-status-pill pill-{{ t.status }}">
                 {% if t.status == 'e_lire' %}E Lirë{% elif t.status == 'e_zene' %}E Zënë{% else %}E Rezervuar{% endif %}
             </span>
         </div>
-        <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px;">
-            {{ t.section }} &bull; Kapaciteti: {{ t.capacity }} persona
+        <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 12px; margin-top: 4px;">
+            <strong style="color: var(--accent-color);">{{ t.section }}</strong> &bull; Kapaciteti: {{ t.capacity }} persona
         </div>
 
         {% if t.active_order %}
@@ -57,4 +73,29 @@
     </div>
     {% endfor %}
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function filtroSektorin(sektori, btnEl) {
+    document.querySelectorAll('.section-filter-btn').forEach(b => {
+        b.classList.remove('active', 'btn-primary');
+        b.classList.add('btn-outline');
+    });
+    if (btnEl) {
+        btnEl.classList.add('active', 'btn-primary');
+        btnEl.classList.remove('btn-outline');
+    }
+
+    const cards = document.querySelectorAll('.table-card');
+    cards.forEach(card => {
+        const cardSec = card.getAttribute('data-section');
+        if (sektori === 'all' || (cardSec && cardSec.toLowerCase() === sektori.toLowerCase())) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+</script>
 {% endblock %}

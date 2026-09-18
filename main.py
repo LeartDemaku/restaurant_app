@@ -1,5 +1,5 @@
 """
-PIKA QENDRORE E HYRJES PËR SISTEMIN E RESTORANTIT
+PIKA QENDRORE E HYRJES PËR SISTEMIN E RESTAURANTIT
 Mundëson:
 1. Nisjen e dyfishtë (Desktop GUI + Web Server në sfond) - PARAZGJEDHUR
 2. Nisjen vetëm të Web Serverit (--web)
@@ -38,7 +38,7 @@ def print_banner_and_qr():
 
     print("=" * 65)
     print(f"       🍽️  {RESTAURANT_NAME}  🍽️")
-    print("   SISTEMI I INTEGRUAR I MENAXHIMIT TË RESTORANTIT")
+    print("   SISTEMI I INTEGRUAR I MENAXHIMIT TË RESTAURANTIT")
     print("=" * 65)
     print(f"• Desktop App:          Duke u hapur në ekran...")
     print(f"• Web Serveri Lokalisht: http://localhost:{WEB_PORT}")

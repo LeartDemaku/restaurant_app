@@ -180,14 +180,34 @@ def seed_database(force: bool = False):
             (name, cat_id, price, stock, desc)
         )
 
-    # 3. Tavolinat (1 deri 16)
-    for i in range(1, 17):
-        capacity = 2 if i in (1, 2) else (6 if i in (15, 16) else 4)
-        section = "Verandë" if i > 12 else "Salla Kryesore"
+    # 3. Tavolinat (Brenda: 15, Terasë: 20, Jashtë: 15 -> Gjithsej 50 tavolina)
+    cursor.execute("DELETE FROM restaurant_tables")
+
+    # Brenda: 1 deri 15
+    for i in range(1, 16):
+        capacity = 2 if i in (1, 2) else (6 if i in (14, 15) else 4)
         cursor.execute(
-            """INSERT OR IGNORE INTO restaurant_tables (table_number, capacity, section, status)
-               VALUES (?, ?, ?, 'e_lire')""",
-            (i, capacity, section)
+            """INSERT INTO restaurant_tables (table_number, capacity, section, status)
+               VALUES (?, ?, 'Brenda', 'e_lire')""",
+            (i, capacity)
+        )
+
+    # Terasë: 16 deri 35
+    for i in range(16, 36):
+        capacity = 2 if i in (16, 17, 18) else (6 if i in (34, 35) else 4)
+        cursor.execute(
+            """INSERT INTO restaurant_tables (table_number, capacity, section, status)
+               VALUES (?, ?, 'Terasë', 'e_lire')""",
+            (i, capacity)
+        )
+
+    # Jashtë: 36 deri 50
+    for i in range(36, 51):
+        capacity = 2 if i in (36, 37) else (6 if i in (49, 50) else 4)
+        cursor.execute(
+            """INSERT INTO restaurant_tables (table_number, capacity, section, status)
+               VALUES (?, ?, 'Jashtë', 'e_lire')""",
+            (i, capacity)
         )
 
     # 4. Stafi
@@ -200,7 +220,7 @@ def seed_database(force: bool = False):
 
     conn.commit()
     conn.close()
-    print(f"U importuan me sukses {len(ITEMS_DATA)} artikuj, 16 tavolina dhe stafi!")
+    print(f"U konfiguruan me sukses {len(ITEMS_DATA)} artikuj, 50 tavolina (Brenda: 15, Terasë: 20, Jashtë: 15) dhe stafi!")
 
 
 if __name__ == "__main__":

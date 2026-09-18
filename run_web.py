@@ -1,5 +1,5 @@
 """
-Nis vetëm Serverin Web të Restorantit (FastAPI + Uvicorn).
+Nis vetëm Serverin Web të Restaurantit (FastAPI + Uvicorn).
 I përshtatshëm për server qendror ose pajisje që përdorin vetëm shfletuesin (Tableta, Smartphone, KDS).
 """
 
