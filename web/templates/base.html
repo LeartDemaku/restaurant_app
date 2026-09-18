@@ -6,55 +6,52 @@
     <title>{% block title %}Sistemi i Menaxhimit të Restorantit{% endblock %}</title>
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- Stilimi Lokal -->
+    <!-- Stilimi Lokal 100% Identik me Java GUI -->
     <link rel="stylesheet" href="/static/css/style.css">
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <header class="navbar">
-        <a href="/pos" class="navbar-brand">
-            <i class="bi bi-fire" style="color: #f59e0b; font-size: 1.5rem;"></i>
-            <span>{{ restaurant_name }}</span>
-            <span class="brand-badge">POS Pro</span>
-        </a>
-
-        <nav>
-            <ul class="navbar-nav">
-                <li>
-                    <a href="/pos" class="nav-link {% if active_page == 'pos' %}active{% endif %}">
-                        <i class="bi bi-cart3"></i> Porositë (POS)
-                    </a>
-                </li>
-                <li>
-                    <a href="/tables" class="nav-link {% if active_page == 'tables' %}active{% endif %}">
-                        <i class="bi bi-grid-3x3-gap-fill"></i> Tavolinat
-                    </a>
-                </li>
-                <li>
-                    <a href="/kitchen" class="nav-link {% if active_page == 'kitchen' %}active{% endif %}">
-                        <i class="bi bi-fire"></i> Kuzhina
-                        {% if pending_orders_count and pending_orders_count > 0 %}
-                        <span class="nav-badge">{{ pending_orders_count }}</span>
-                        {% endif %}
-                    </a>
-                </li>
-                <li>
-                    <a href="/admin/menu" class="nav-link {% if active_page == 'menu' %}active{% endif %}">
-                        <i class="bi bi-card-checklist"></i> Menaxho Menynë
-                    </a>
-                </li>
-                <li>
-                    <a href="/reports" class="nav-link {% if active_page == 'reports' %}active{% endif %}">
-                        <i class="bi bi-graph-up-arrow"></i> Statistikat
-                    </a>
-                </li>
-            </ul>
-        </nav>
+    <!-- KOKA E FAQES (HEADER BAR) -->
+    <header class="header-bar">
+        <div class="header-title">
+            <i class="bi bi-shop" style="color: #f1c40f; font-size: 1.35rem;"></i>
+            <span>Sistemi i Menaxhimit të Restorantit</span>
+        </div>
+        <div style="display: flex; gap: 16px; align-items: center;">
+            <a href="/tables" class="header-link">
+                <i class="bi bi-grid-3x3-gap-fill"></i> Tavolinat
+            </a>
+            <a href="/kitchen" class="header-link">
+                <i class="bi bi-fire" style="color: #e74c3c;"></i> Kuzhina
+            </a>
+            <a href="/admin/menu" class="header-link">
+                <i class="bi bi-journal-text"></i> Menyja
+            </a>
+            <a href="/reports" class="header-link">
+                <i class="bi bi-graph-up-arrow" style="color: #2ecc71;"></i> Raportet
+            </a>
+        </div>
     </header>
 
-    <main class="main-content">
+    <!-- TABET KRYESORE IDENTIKE ME GUI.JAVA (Porositë, Menaxhimi, Statistikat) -->
+    <nav class="main-tabs" id="mainTabsNav">
+        <a href="/pos?tab=porosite" class="main-tab-btn {% if active_page == 'pos' and (not request.query_params.get('tab') or request.query_params.get('tab') == 'porosite') %}active{% endif %}" id="tabBtnPorosite" onclick="handleTabClick(event, 'porosite')">
+            <i class="bi bi-cart3"></i> Porositë
+        </a>
+        <a href="/pos?tab=menaxhimi" class="main-tab-btn {% if active_page == 'pos' and request.query_params.get('tab') == 'menaxhimi' %}active{% endif %}" id="tabBtnMenaxhimi" onclick="handleTabClick(event, 'menaxhimi')">
+            <i class="bi bi-card-checklist"></i> Menaxhimi
+        </a>
+        <a href="/pos?tab=statistikat" class="main-tab-btn {% if active_page == 'pos' and request.query_params.get('tab') == 'statistikat' %}active{% endif %}" id="tabBtnStatistikat" onclick="handleTabClick(event, 'statistikat')">
+            <i class="bi bi-bar-chart-fill"></i> Statistikat
+        </a>
+    </nav>
+
+    <!-- TRUPI KRYESOR I FAQES -->
+    <main class="app-container">
         {% block content %}{% endblock %}
     </main>
+
+    <div id="toastContainer"></div>
 
     <script src="/static/js/app.js"></script>
     {% block extra_scripts %}{% endblock %}

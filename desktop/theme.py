@@ -1,5 +1,6 @@
 """
 Konfigurimet e temave, ngjyrave dhe fonteve per aplikacionin Desktop CustomTkinter.
+100% të sinkronizuara me GUI.java.
 """
 
 # Ngjyrat kryesore
@@ -18,12 +19,14 @@ DANGER_HOVER = "#e74c3c"
 WARNING_COLOR = "#d35400"
 WARNING_HOVER = "#e67e22"
 
-# Ngjyrat e kategorive te artikujve (si ne Java GUI.java)
+PRICE_COLOR = "#f39c12"
+
+# Ngjyrat e kategorive te artikujve (identike me Java GUI.java)
 CATEGORY_COLORS = {
-    "Pije": {"bg": "#2980b9", "hover": "#3498db"},
-    "Kafe": {"bg": "#795548", "hover": "#8d6e63"},
-    "Ushqim": {"bg": "#c0392b", "hover": "#e74c3c"},
-    "Embëlsirë": {"bg": "#d35400", "hover": "#e67e22"},
+    "Pije": {"bg": "#3498db", "hover": "#2980b9"},
+    "Kafe": {"bg": "#8d6e63", "hover": "#6d4c41"},
+    "Ushqim": {"bg": "#e74c3c", "hover": "#c0392b"},
+    "Embëlsirë": {"bg": "#e67e22", "hover": "#d35400"},
 }
 
 # Fontet
@@ -32,5 +35,5 @@ FONT_TITLE = (FONT_FAMILY, 16, "bold")
 FONT_SUBTITLE = (FONT_FAMILY, 13, "bold")
 FONT_BODY = (FONT_FAMILY, 11)
 FONT_BODY_BOLD = (FONT_FAMILY, 11, "bold")
-FONT_TOTAL = (FONT_FAMILY, 20, "bold")
-FONT_RECEIPT = ("Consolas", 11)
+FONT_TOTAL = (FONT_FAMILY, 22, "bold")
+FONT_RECEIPT = ("Consolas", 12, "bold")

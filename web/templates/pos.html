@@ -1,91 +1,112 @@
 {% extends "base.html" %}
 
-{% block title %}Kasa POS - Porosi e Re{% endblock %}
+{% block title %}Porositë - Sistemi i Menaxhimit të Restorantit{% endblock %}
 
 {% block content %}
-<div class="pos-container">
-    <!-- KATALOGU I ARTIKUJVE -->
-    <div class="pos-catalog">
-        <!-- KATEGORITË ME BUTONA TË PERSONALIZUAR -->
-        <div class="category-tabs">
-            <button class="cat-btn active" data-cat="all">
-                <i class="bi bi-grid"></i> Të Gjitha
-            </button>
-            {% for cat in categories %}
-            <button class="cat-btn" data-cat="{{ cat.name }}">
-                <i class="bi {{ cat.icon }}"></i> {{ cat.name }}
-            </button>
-            {% endfor %}
-        </div>
-
-        <!-- SEARCH INPUT -->
-        <div class="search-wrapper">
-            <input type="text" id="searchInput" class="search-input" placeholder="🔍 Kërko artikullin (p.sh. Macchiato, Sufllaqe, Pica)...">
-        </div>
-
-        <!-- RRJETI I ARTIKUJVE -->
-        <div class="items-grid" id="itemsGrid">
-            {% for item in items %}
-            <div class="item-card cat-{{ item.category_name|lower }}" 
-                 data-category="{{ item.category_name }}"
-                 onclick="addToCart({{ item.id }}, '{{ item.name }}', {{ item.price }})">
-                <div class="item-title">{{ item.name }}</div>
-                <div class="item-price">{{ "%.2f"|format(item.price) }} €</div>
+<!-- SKEDA 1: POROSITË (POS) - 100% E NJËJTË ME JAVA GUI -->
+<div id="panelPorosite" class="tab-content-panel">
+    <div class="pos-layout">
+        <!-- MAJTAS: SKEDAT E KATEGORIVE DHE RRJETI I ARTIKUJVE (3 KOLONA) -->
+        <div class="category-tab-container">
+            <div class="category-nav">
+                <button type="button" class="cat-nav-btn active" onclick="switchCategory('Pije', this)">Pije</button>
+                <button type="button" class="cat-nav-btn" onclick="switchCategory('Kafe', this)">Kafe</button>
+                <button type="button" class="cat-nav-btn" onclick="switchCategory('Ushqim', this)">Ushqim</button>
+                <button type="button" class="cat-nav-btn" onclick="switchCategory('Embëlsirë', this)">Embëlsirë</button>
+                <button type="button" class="cat-nav-btn" onclick="switchCategory('all', this)">Të Gjitha</button>
             </div>
-            {% endfor %}
+
+            <div class="items-scroll-pane">
+                <div class="items-grid-3cols" id="itemsGrid">
+                    {% for item in items %}
+                    <button type="button" 
+                            class="btn-artikull {{ item.category_name|lower|replace('ë','e') }}" 
+                            data-category="{{ item.category_name }}"
+                            onclick="shtoNePorosi('{{ item.name|escape }}', {{ item.price }}, {{ item.id }})">
+                        <div class="btn-artikull-emri">{{ item.name }}</div>
+                        <div class="btn-artikull-cmimi">{{ "%.2f"|format(item.price) }}€</div>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- DJATHAS: POROSIA AKTUALE (PANELI IDENTIK ME GUI.JAVA) -->
+        <div class="current-order-panel">
+            <div class="order-panel-title">Porosia Aktuale</div>
+            
+            <div id="etiketaTotali" class="order-total-label">Totali: 0.00€ </div>
+            
+            <textarea id="zonaPorosi" class="order-textarea-box" readonly placeholder="Zgjidhni artikuj nga menyja majtas..."></textarea>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 6px; margin-bottom: 4px;">
+                <button type="button" class="btn-undo" onclick="anuloTeFundit()" title="Fshij artikullin e fundit të shtuar">
+                    <i class="bi bi-arrow-counterclockwise"></i> Anulo të fundit
+                </button>
+            </div>
+
+            <div class="order-buttons-grid">
+                <button type="button" class="btn-styled btn-printo" onclick="printoFaturen()">
+                    <i class="bi bi-printer"></i> Printo
+                </button>
+                <button type="button" class="btn-styled btn-pastro" onclick="pastroPorosi()">
+                    <i class="bi bi-trash"></i> Pastro
+                </button>
+                <button type="button" class="btn-styled btn-ruaj" onclick="ruajPorosi()">
+                    <i class="bi bi-check-circle-fill"></i> Ruaj Porosinë
+                </button>
+            </div>
         </div>
     </div>
+</div>
 
-    <!-- SHPORTA E POROSISË (SIDEBAR) -->
-    <div class="pos-cart">
-        <div class="cart-header">
-            <h3 style="display:flex; align-items:center; gap:8px;">
-                <i class="bi bi-receipt" style="color:var(--primary-color);"></i>
-                Porosia Aktuale
-            </h3>
-            <div class="cart-inputs">
-                <div>
-                    <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted);">Tavolina:</label>
-                    <select id="tableSelect">
-                        {% for t in tables %}
-                        <option value="{{ t.table_number }}">Tavolina {{ t.table_number }} ({{ t.section }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted);">Emri i Kamarierit:</label>
-                    <input type="text" id="waiterInput" class="search-input" style="padding: 7px 10px; font-size: 0.9rem;" placeholder="Shkruani emrin tuaj..." required>
-                </div>
-            </div>
+<!-- SKEDA 2: MENAXHIMI (TABELA E POROSIVE IDENTIKE ME GUI.JAVA) -->
+<div id="panelMenaxhimi" class="tab-content-panel" style="display: none;">
+    <div class="management-panel">
+        <div class="order-panel-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Lista e Porosive</span>
+            <span style="font-size: 0.85rem; font-weight: normal; color: #64748b;">(Statusi përditësohet në kohë reale)</span>
+        </div>
+        
+        <div style="overflow-x: auto; margin-top: 10px;">
+            <table class="management-table" id="tabelaPorosive">
+                <thead>
+                    <tr>
+                        <th style="width: 22%;">Data</th>
+                        <th style="width: 20%;">Kamarieri</th>
+                        <th style="width: 14%;">Tavolina</th>
+                        <th style="width: 14%;">Totali</th>
+                        <th style="width: 18%;">Statusi</th>
+                        <th style="width: 12%;">Veprime</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaPorosiveBody">
+                    <!-- Mbushur me JavaScript -->
+                </tbody>
+            </table>
         </div>
 
-        <!-- ARTIKUJT NË SHPORTË -->
-        <div class="cart-items" id="cartItems">
-            <!-- Mbushja me JavaScript -->
-        </div>
-
-        <!-- SHËNIME SHTESË PËR KUZHINËN -->
-        <div style="margin-bottom: 12px;">
-            <input type="text" id="orderNotes" class="search-input" style="padding: 8px 10px; font-size: 0.85rem;" placeholder="Shënime për kuzhinën (opsionale)...">
-        </div>
-
-        <!-- TOTALI DHE BUTONAT -->
-        <div class="cart-summary">
-            <div class="cart-total-row">
-                <span>TOTALI:</span>
-                <span id="cartTotal">0.00 €</span>
-            </div>
-        </div>
-
-        <div class="cart-actions">
-            <button class="btn btn-danger" onclick="clearCart()">
-                <i class="bi bi-trash"></i> Pastro
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;">
+            <button type="button" class="btn-styled" style="background-color: var(--ngjyra-kryesore);" onclick="rifreskoTabelen()">
+                <i class="bi bi-arrow-clockwise"></i> Rifresko Tabelën
             </button>
-            <button class="btn btn-outline" onclick="window.print()">
-                <i class="bi bi-printer"></i> Printo
+            <button type="button" class="btn-styled" style="background-color: var(--ngjyra-ushqim);" onclick="pastroTeGjithaPorosite()">
+                <i class="bi bi-trash-fill"></i> Pastro të Gjitha Porositë
             </button>
-            <button class="btn btn-success btn-full" onclick="submitOrder()">
-                <i class="bi bi-send-check"></i> Dërgo Porosinë në Kuzhinë
+        </div>
+    </div>
+</div>
+
+<!-- SKEDA 3: STATISTIKAT DITORE IDENTIKE ME GUI.JAVA -->
+<div id="panelStatistikat" class="tab-content-panel" style="display: none;">
+    <div class="statistics-panel">
+        <div class="order-panel-title">Statistikat Ditore</div>
+        
+        <textarea id="zonaStatistikat" class="statistics-textarea" readonly placeholder="Ngarkimi i statistikave ditore..."></textarea>
+        
+        <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+            <button type="button" class="btn-styled" style="background-color: var(--ngjyra-kryesore);" onclick="rifreskoStatistikat()">
+                <i class="bi bi-arrow-clockwise"></i> Rifresko Statistikat
             </button>
         </div>
     </div>

@@ -1,491 +1,418 @@
-// ===============================================
-// RESTAURANT POS CLIENT-SIDE SCRIPT (ULTRA MODERN)
-// ===============================================
+// ==========================================================
+// SISTEMI I MENAXHIMIT TË RESTORANTIT - JAVASCRIPT KRYESOR
+// 100% Identik me sjelljen e aplikacionit origjinal GUI.java
+// ==========================================================
 
-let cart = [];
-let audioCtx = null;
+let currentOrderItems = [];
+let shumaTotale = 0.0;
 
-// Audio Chime Synthesizer me Web Audio API (Nuk kërkon skedarë të jashtëm mp3!)
-function playNotificationSound(type = 'success') {
-    try {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+// Formatimi i rreshtit të faturës identik me String.format("%-28s %8s€\n", ...)
+function formatReceiptLine(name, price) {
+    let cleanName = name.length > 27 ? name.substring(0, 27) : name;
+    let padName = cleanName.padEnd(28, ' ');
+    let padPrice = price.toFixed(2).padStart(7, ' ');
+    return `${padName} ${padPrice}€\n`;
+}
 
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
+// 1. SHTIMI I ARTIKULLIT NË POROSI
+function shtoNePorosi(emri, cmimi, id = null) {
+    cmimi = parseFloat(cmimi);
+    shumaTotale += cmimi;
+    currentOrderItems.push({ id: id, name: emri, price: cmimi });
 
-        const now = audioCtx.currentTime;
+    const zona = document.getElementById('zonaPorosi');
+    const etiketa = document.getElementById('etiketaTotali');
 
-        if (type === 'success') {
-            // Tingull i këndshëm 'Ding-Ding' për porosi të re / pagesë
-            osc.frequency.setValueAtTime(587.33, now); // D5
-            osc.frequency.setValueAtTime(880.00, now + 0.12); // A5
-            gain.gain.setValueAtTime(0.15, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-            osc.start(now);
-            osc.stop(now + 0.4);
-        } else if (type === 'order') {
-            // Tingull për kuzhinën
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(523.25, now); // C5
-            osc.frequency.setValueAtTime(659.25, now + 0.15); // E5
-            osc.frequency.setValueAtTime(783.99, now + 0.3); // G5
-            gain.gain.setValueAtTime(0.2, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-            osc.start(now);
-            osc.stop(now + 0.6);
-        } else if (type === 'danger') {
-            // Tingull fshirjeje / paralajmërimi
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(320, now);
-            osc.frequency.setValueAtTime(220, now + 0.15);
-            gain.gain.setValueAtTime(0.15, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-            osc.start(now);
-            osc.stop(now + 0.35);
-        }
-    } catch (e) {
-        console.warn("Audio Context i bllokuar:", e);
+    if (zona) {
+        zona.value += formatReceiptLine(emri, cmimi);
+        zona.scrollTop = zona.scrollHeight;
+    }
+    if (etiketa) {
+        etiketa.textContent = `Totali: ${shumaTotale.toFixed(2)}€ `;
     }
 }
 
-// Toast Notifications (Në vend të alert-it klasik)
-function showToast(message, type = 'success') {
-    let container = document.getElementById('toastContainer');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toastContainer';
-        document.body.appendChild(container);
+// 2. ANULIMI I ARTIKULLIT TË FUNDIT (UNDO)
+function anuloTeFundit() {
+    if (currentOrderItems.length === 0) return;
+    const removed = currentOrderItems.pop();
+    shumaTotale -= removed.price;
+    if (shumaTotale < 0.001) shumaTotale = 0.0;
+
+    const zona = document.getElementById('zonaPorosi');
+    const etiketa = document.getElementById('etiketaTotali');
+
+    let txt = "";
+    currentOrderItems.forEach(item => {
+        txt += formatReceiptLine(item.name, item.price);
+    });
+
+    if (zona) zona.value = txt;
+    if (etiketa) etiketa.textContent = `Totali: ${shumaTotale.toFixed(2)}€ `;
+}
+
+// 3. PASTRIMI I POROSISË AKTUALE
+function pastroPorosi() {
+    currentOrderItems = [];
+    shumaTotale = 0.0;
+    const zona = document.getElementById('zonaPorosi');
+    const etiketa = document.getElementById('etiketaTotali');
+    if (zona) zona.value = "";
+    if (etiketa) etiketa.textContent = "Totali: 0.00€ ";
+}
+
+// 4. PRINTIMI I FATURËS
+function printoFaturen() {
+    const zona = document.getElementById('zonaPorosi');
+    const text = zona ? zona.value : "";
+    if (!text || !text.trim()) {
+        alert("Nuk ka porosi për të printuar!");
+        return;
     }
 
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
+    const totalText = document.getElementById('etiketaTotali') ? document.getElementById('etiketaTotali').textContent : `Totali: ${shumaTotale.toFixed(2)}€`;
+    const printWindow = window.open('', '_blank', 'width=450,height=600');
+    if (!printWindow) {
+        window.print();
+        return;
+    }
 
-    let icon = 'bi-check-circle-fill';
-    if (type === 'danger') icon = 'bi-trash-fill';
-    if (type === 'warning') icon = 'bi-exclamation-triangle-fill';
+    const now = new Date();
+    const dataStr = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth()+1).padStart(2, '0')}-${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
-    toast.innerHTML = `<i class="bi ${icon}"></i> <span>${message}</span>`;
-    container.appendChild(toast);
-
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Faturë Restoranti</title>
+            <style>
+                body {
+                    font-family: 'Consolas', monospace;
+                    font-size: 14px;
+                    padding: 20px;
+                    white-space: pre;
+                    line-height: 1.5;
+                    color: #000;
+                }
+            </style>
+        </head>
+        <body>
+=== FATURË RESTORANTI ===
+Data: ${dataStr}
+----------------------------------------
+${text}----------------------------------------
+${totalText}
+========================================
+Faleminderit për vizitën tuaj!
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
     setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(50px)';
-        setTimeout(() => toast.remove(), 300);
-    }, 3800);
+        printWindow.print();
+    }, 250);
 }
 
-// URL Params
-function getTableNumberFromUrl() {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('table');
-}
-
-// Inicializimi i POS
-function initPOS() {
-    const presetTable = getTableNumberFromUrl();
-    if (presetTable) {
-        const tableSelect = document.getElementById('tableSelect');
-        if (tableSelect) {
-            tableSelect.value = presetTable;
-        }
-    }
-
-    // Mbushim emrin e fundit të kamarierit nga localStorage
-    const waiterInput = document.getElementById('waiterInput');
-    const savedWaiter = localStorage.getItem('pos_last_waiter');
-    if (waiterInput && savedWaiter) {
-        waiterInput.value = savedWaiter;
-    }
-
-    // Filtri i kategorive
-    const catBtns = document.querySelectorAll('.cat-btn');
-    catBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            catBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const cat = btn.getAttribute('data-cat');
-            filterItems(cat);
-        });
-    });
-
-    // Kërkimi i artikujve
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase().trim();
-            searchItems(query);
-        });
-    }
-
-    renderCart();
-}
-
-function filterItems(category) {
-    const items = document.querySelectorAll('.item-card');
-    items.forEach(card => {
-        const cardCat = card.getAttribute('data-category');
-        if (category === 'all' || cardCat === category) {
-            card.style.display = 'flex';
-        } else {
-            card.style.display = 'none';
-        }
-    });
-}
-
-function searchItems(query) {
-    const items = document.querySelectorAll('.item-card');
-    items.forEach(card => {
-        const title = card.querySelector('.item-title').textContent.toLowerCase();
-        if (title.includes(query)) {
-            card.style.display = 'flex';
-        } else {
-            card.style.display = 'none';
-        }
-    });
-}
-
-// Menaxhimi i shportës
-function addToCart(id, name, price) {
-    const existing = cart.find(item => item.id === id);
-    if (existing) {
-        existing.quantity += 1;
-    } else {
-        cart.push({ id, name, price: parseFloat(price), quantity: 1, notes: '' });
-    }
-    renderCart();
-}
-
-function changeQty(id, delta) {
-    const item = cart.find(i => i.id === id);
-    if (!item) return;
-    item.quantity += delta;
-    if (item.quantity <= 0) {
-        cart = cart.filter(i => i.id !== id);
-    }
-    renderCart();
-}
-
-function clearCart() {
-    if (cart.length === 0) return;
-    if (confirm("A jeni të sigurt që dëshironi ta pastroni porosinë aktuale?")) {
-        cart = [];
-        renderCart();
-        showToast("Shporta u pastrua", "warning");
-    }
-}
-
-function renderCart() {
-    const cartContainer = document.getElementById('cartItems');
-    const totalEl = document.getElementById('cartTotal');
-    if (!cartContainer || !totalEl) return;
-
-    if (cart.length === 0) {
-        cartContainer.innerHTML = `
-            <div style="text-align:center; color:#94a3b8; padding:50px 10px;">
-                <i class="bi bi-basket3" style="font-size: 2.2rem; opacity: 0.5;"></i>
-                <div style="margin-top: 10px; font-weight: 600;">Porosia është e zbrazët</div>
-                <div style="font-size: 0.8rem; margin-top: 4px;">Klikoni artikujt majtas për t'i shtuar</div>
-            </div>
-        `;
-        totalEl.textContent = '0.00 €';
+// 5. RUAJTJA E POROSISË (100% IDENTIKE ME JAVA GUI)
+async function ruajPorosi() {
+    if (shumaTotale === 0.0 || currentOrderItems.length === 0) {
+        alert("Shto artikuj në porosi para ruajtjes!");
         return;
     }
 
-    let total = 0.0;
-    cartContainer.innerHTML = '';
-
-    cart.forEach(item => {
-        const subtotal = item.price * item.quantity;
-        total += subtotal;
-
-        const row = document.createElement('div');
-        row.className = 'cart-item-row';
-        row.innerHTML = `
-            <div class="cart-item-info">
-                <div class="cart-item-name">${item.name}</div>
-                <div class="cart-item-price">${item.price.toFixed(2)}€ &times; ${item.quantity} = <strong>${subtotal.toFixed(2)}€</strong></div>
-            </div>
-            <div class="cart-qty-ctrl">
-                <button class="qty-btn" onclick="changeQty(${item.id}, -1)">-</button>
-                <span style="font-weight:bold; min-width:24px; text-align:center;">${item.quantity}</span>
-                <button class="qty-btn" onclick="changeQty(${item.id}, 1)">+</button>
-            </div>
-        `;
-        cartContainer.appendChild(row);
-    });
-
-    totalEl.textContent = `${total.toFixed(2)} €`;
-}
-
-// Dërgimi i porosisë në server
-async function submitOrder() {
-    if (cart.length === 0) {
-        showToast("Shtoni të paktën një artikull para dërgimit!", "warning");
+    const lastWaiter = localStorage.getItem('last_waiter') || "";
+    const kamarieri = prompt("Shkruani emrin e kamarierit:", lastWaiter);
+    if (kamarieri === null) return; // Klikoi cancel
+    if (!kamarieri.trim()) {
+        alert("Emri i kamarierit është i detyrueshëm!");
         return;
     }
 
-    const tableSelect = document.getElementById('tableSelect');
-    const waiterInput = document.getElementById('waiterInput');
-    const notesInput = document.getElementById('orderNotes');
-
-    const tableNumber = parseInt(tableSelect ? tableSelect.value : 1);
-    const waiterName = waiterInput ? waiterInput.value.trim() : "";
-
-    if (!waiterName) {
-        showToast("Ju lutem shkruani emrin e kamarierit!", "warning");
-        if (waiterInput) waiterInput.focus();
+    const numriTavolinesStr = prompt("Shkruani numrin e tavolinës:", "1");
+    if (numriTavolinesStr === null) return; // Klikoi cancel
+    if (!numriTavolinesStr.trim()) {
+        alert("Numri i tavolinës është i detyrueshëm!");
         return;
     }
 
-    const payload = {
-        table_number: tableNumber,
-        waiter_name: waiterName,
-        items: cart,
-        notes: notesInput ? notesInput.value : "",
-        payment_method: 'Kesh'
-    };
+    const numriTavolines = parseInt(numriTavolinesStr.trim());
+    if (isNaN(numriTavolines) || numriTavolines <= 0) {
+        alert("Numri i tavolinës duhet të jetë numër!");
+        return;
+    }
+
+    localStorage.setItem('last_waiter', kamarieri.trim());
 
     try {
+        const payload = {
+            table_number: numriTavolines,
+            waiter_name: kamarieri.trim(),
+            items: currentOrderItems.map(item => ({
+                id: item.id || null,
+                name: item.name,
+                price: item.price,
+                quantity: 1,
+                notes: ""
+            })),
+            notes: "",
+            payment_method: "Kesh"
+        };
+
         const res = await fetch('/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        const data = await res.json();
-        if (res.ok) {
-            localStorage.setItem('pos_last_waiter', waiterName);
-            playNotificationSound('success');
-            showToast(`✅ Porosia #${data.order_id} u dërgua për Tavolinën ${tableNumber} nga ${waiterName}!`, "success");
-            cart = [];
-            if (notesInput) notesInput.value = '';
-            renderCart();
-        } else {
-            showToast(`Gabim: ${data.detail || 'Dështoi ruajtja'}`, "danger");
+        if (!res.ok) {
+            const err = await res.json();
+            alert("Gabim gjatë ruajtjes: " + (err.detail || "Diçka shkoi keq"));
+            return;
         }
-    } catch (err) {
-        showToast("Gabim gjatë lidhjes me serverin: " + err.message, "danger");
-    }
-}
 
-// ===============================================
-// FSHIRJA E POROSISË (DELETE ORDER)
-// ===============================================
-async function deleteOrder(orderId) {
-    if (!confirm(`A jeni të sigurt që dëshironi ta fshini plotësisht Porosinë #${orderId}?`)) {
-        return;
-    }
-
-    try {
-        const res = await fetch(`/api/orders/${orderId}`, {
-            method: 'DELETE'
-        });
-
-        if (res.ok) {
-            playNotificationSound('danger');
-            showToast(`Porosia #${orderId} u fshi me sukses!`, "danger");
-            setTimeout(() => window.location.reload(), 600);
-        } else {
-            showToast("Dështoi fshirja e porosisë!", "danger");
-        }
+        alert("Porosia u ruajt me sukses!");
+        pastroPorosi();
+        rifreskoTabelen();
+        perditesoStatistikat();
     } catch (e) {
-        showToast("Gabim: " + e.message, "danger");
+        alert("Gabim gjatë ruajtjes: " + e.message);
     }
 }
 
-// Pastrimi i të gjitha porosive (Clear All Orders)
-async function clearAllOrders() {
-    const pass = prompt("KUJDES: Kjo do të fshijë TË GJITHA porositë nga sistemi!\nShkruani 'PO' për të konfirmuar:");
-    if (pass !== 'PO' && pass !== 'po') {
-        return;
-    }
+// 6. NDRYSHIMI I KATEGORISË SË ARTIKUJVE (Pije, Kafe, Ushqim, Embëlsirë)
+function switchCategory(catName, btnEl) {
+    document.querySelectorAll('.cat-nav-btn').forEach(b => b.classList.remove('active'));
+    if (btnEl) btnEl.classList.add('active');
 
-    try {
-        const res = await fetch('/api/orders/clear-all', {
-            method: 'POST'
-        });
-
-        if (res.ok) {
-            playNotificationSound('danger');
-            showToast("Të gjitha porositë u fshinë! Sistemi u resetua në 0.", "success");
-            setTimeout(() => window.location.reload(), 700);
+    const buttons = document.querySelectorAll('.btn-artikull');
+    buttons.forEach(btn => {
+        const cat = btn.getAttribute('data-category');
+        if (catName === 'all' || (cat && cat.toLowerCase() === catName.toLowerCase())) {
+            btn.style.display = 'flex';
         } else {
-            showToast("Gabim gjatë fshirjes së të gjitha porosive.", "danger");
+            btn.style.display = 'none';
         }
-    } catch (e) {
-        showToast("Gabim: " + e.message, "danger");
+    });
+}
+
+// 7. TABET KRYESORE (Porositë, Menaxhimi, Statistikat)
+function showTab(tabName) {
+    // Fshehim të gjitha panelet
+    const pPorosite = document.getElementById('panelPorosite');
+    const pMenaxhimi = document.getElementById('panelMenaxhimi');
+    const pStatistikat = document.getElementById('panelStatistikat');
+
+    if (pPorosite) pPorosite.style.display = 'none';
+    if (pMenaxhimi) pMenaxhimi.style.display = 'none';
+    if (pStatistikat) pStatistikat.style.display = 'none';
+
+    // Heqim klasën active nga butonat
+    const bPorosite = document.getElementById('tabBtnPorosite');
+    const bMenaxhimi = document.getElementById('tabBtnMenaxhimi');
+    const bStatistikat = document.getElementById('tabBtnStatistikat');
+
+    if (bPorosite) bPorosite.classList.remove('active');
+    if (bMenaxhimi) bMenaxhimi.classList.remove('active');
+    if (bStatistikat) bStatistikat.classList.remove('active');
+
+    if (tabName === 'menaxhimi') {
+        if (pMenaxhimi) pMenaxhimi.style.display = 'block';
+        if (bMenaxhimi) bMenaxhimi.classList.add('active');
+        rifreskoTabelen();
+    } else if (tabName === 'statistikat') {
+        if (pStatistikat) pStatistikat.style.display = 'block';
+        if (bStatistikat) bStatistikat.classList.add('active');
+        perditesoStatistikat();
+    } else {
+        if (pPorosite) pPorosite.style.display = 'block';
+        if (bPorosite) bPorosite.classList.add('active');
     }
 }
 
-// ===============================================
-// KITCHEN KDS LIVE UPDATE
-// ===============================================
-async function updateKitchenStatus(orderId, newStatus) {
+function handleTabClick(event, tabName) {
+    // Nëse paneli ekziston në faqe, ndërrojmë lokalisht pa reload
+    const targetPanel = document.getElementById(tabName === 'porosite' ? 'panelPorosite' : (tabName === 'menaxhimi' ? 'panelMenaxhimi' : 'panelStatistikat'));
+    if (targetPanel) {
+        event.preventDefault();
+        showTab(tabName);
+        history.replaceState(null, '', `/pos?tab=${tabName}`);
+    }
+}
+
+// 8. RIFRESKIMI I TABELËS SË POROSIVE (TAB 2: MENAXHIMI)
+async function rifreskoTabelen() {
+    const tbody = document.getElementById('tabelaPorosiveBody');
+    if (!tbody) return;
+
     try {
-        const res = await fetch(`/api/orders/${orderId}/status?status=${encodeURIComponent(newStatus)}`, {
+        const res = await fetch('/api/orders');
+        const orders = await res.json();
+        tbody.innerHTML = '';
+
+        if (orders.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="padding: 24px; color: #94a3b8; font-style: italic;">Nuk ka asnjë porosi të regjistruar në sistem.</td></tr>`;
+            return;
+        }
+
+        orders.forEach(p => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${p.created_at || ''}</td>
+                <td><strong>${p.waiter_name || ''}</strong></td>
+                <td>Tavolina ${p.table_number || ''}</td>
+                <td style="font-weight: 800; color: #27ae60;">${p.total_amount.toFixed(2)}€</td>
+                <td>
+                    <select class="status-select" onchange="ndryshoStatusin(${p.id}, this.value)">
+                        <option value="E Re" ${p.status === 'E Re' ? 'selected' : ''}>E Re</option>
+                        <option value="Në Përgatitje" ${p.status === 'Në Përgatitje' ? 'selected' : ''}>Në Përgatitje</option>
+                        <option value="E Përfunduar" ${p.status === 'E Përfunduar' ? 'selected' : ''}>E Përfunduar</option>
+                    </select>
+                </td>
+                <td>
+                    <button type="button" class="btn-delete-order" onclick="fshiPorosine(${p.id})">Fshi</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (e) {
+        console.error("Gabim gjatë rifreskimit të tabelës:", e);
+    }
+}
+
+// 9. NDRYSHIMI I STATUSIT TË POROSISË
+async function ndryshoStatusin(orderId, status) {
+    try {
+        const res = await fetch(`/api/orders/${orderId}/status?status=${encodeURIComponent(status)}`, {
             method: 'PATCH'
         });
         if (res.ok) {
-            playNotificationSound('order');
-            showToast(`Porosia #${orderId} kaloi në '${newStatus}'`, "success");
-            setTimeout(() => window.location.reload(), 400);
-        } else {
-            showToast("Gabim gjatë përditësimit të statusit!", "danger");
+            perditesoStatistikat();
         }
     } catch (e) {
-        console.error(e);
+        alert("Gabim gjatë ndryshimit të statusit: " + e.message);
     }
 }
 
-// Rifreskimi automatik i kuzhinës çdo 6 sekonda
-function startKitchenAutoRefresh() {
-    setInterval(() => {
-        if (window.location.pathname.includes('/kitchen')) {
-            window.location.reload();
+// 10. FSHIRJA E NJË POROSIE
+async function fshiPorosine(orderId) {
+    if (!confirm(`A jeni të sigurt që dëshironi ta fshini porosinë #${orderId}?`)) return;
+    try {
+        const res = await fetch(`/api/orders/${orderId}`, { method: 'DELETE' });
+        if (res.ok) {
+            rifreskoTabelen();
+            perditesoStatistikat();
+        } else {
+            alert("Nuk mund të fshihet porosia.");
         }
-    }, 6000);
-}
-
-// ===============================================
-// KALKULATORI I KUSURIT (PAYMENT CHANGE MODAL)
-// ===============================================
-let currentPayingOrderId = null;
-let currentPayingTotal = 0.0;
-
-function openPaymentModal(orderId, total) {
-    currentPayingOrderId = orderId;
-    currentPayingTotal = parseFloat(total);
-
-    let modal = document.getElementById('paymentModal');
-    if (!modal) {
-        createPaymentModal();
-        modal = document.getElementById('paymentModal');
-    }
-
-    document.getElementById('modalTotalAmount').textContent = `${currentPayingTotal.toFixed(2)} €`;
-    document.getElementById('cashGivenInput').value = '';
-    document.getElementById('changeReturnAmount').textContent = '0.00 €';
-    document.getElementById('changeReturnAmount').style.color = '#10b981';
-
-    modal.classList.add('active');
-    setTimeout(() => document.getElementById('cashGivenInput').focus(), 150);
-}
-
-function closePaymentModal() {
-    const modal = document.getElementById('paymentModal');
-    if (modal) modal.classList.remove('active');
-}
-
-function setQuickCash(amount) {
-    const input = document.getElementById('cashGivenInput');
-    if (!input) return;
-    input.value = amount === 'exact' ? currentPayingTotal.toFixed(2) : amount;
-    calculateChange();
-}
-
-function calculateChange() {
-    const givenStr = document.getElementById('cashGivenInput').value;
-    const given = parseFloat(givenStr) || 0.0;
-    const change = given - currentPayingTotal;
-    const changeEl = document.getElementById('changeReturnAmount');
-
-    if (change < 0) {
-        changeEl.textContent = `Mungojnë ${Math.abs(change).toFixed(2)} €`;
-        changeEl.style.color = '#ef4444';
-    } else {
-        changeEl.textContent = `${change.toFixed(2)} €`;
-        changeEl.style.color = '#10b981';
+    } catch (e) {
+        alert("Gabim gjatë fshirjes: " + e.message);
     }
 }
 
-async function confirmPayment(method = 'Kesh') {
-    if (!currentPayingOrderId) return;
+// 11. FSHIRJA E TË GJITHA POROSIVE
+async function pastroTeGjithaPorosite() {
+    if (!confirm("⚠️ KUJDES: A dëshironi të fshini TË GJITHA porositë nga sistemi? Asnjë porosi nuk do të mbetet.")) return;
+    try {
+        const res = await fetch('/api/orders/clear-all', { method: 'POST' });
+        if (res.ok) {
+            alert("Të gjitha porositë u fshinë me sukses!");
+            rifreskoTabelen();
+            perditesoStatistikat();
+        }
+    } catch (e) {
+        alert("Gabim: " + e.message);
+    }
+}
+
+// 12. STATISTIKAT DITORE (TAB 3: STATISTIKAT)
+function rifreskoStatistikat() {
+    perditesoStatistikat();
+}
+
+async function perditesoStatistikat() {
+    const area = document.getElementById('zonaStatistikat');
+    if (!area) return;
 
     try {
-        const res = await fetch(`/api/orders/${currentPayingOrderId}/pay?payment_method=${encodeURIComponent(method)}`, {
-            method: 'POST'
-        });
+        const res = await fetch('/api/stats/daily');
+        const stats = await res.json();
 
-        if (res.ok) {
-            playNotificationSound('success');
-            showToast(`✅ Fatura u arkëtua me sukses me ${method}!`, 'success');
-            closePaymentModal();
-            setTimeout(() => window.location.reload(), 600);
+        const now = new Date();
+        const dataSot = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth()+1).padStart(2, '0')}-${now.getFullYear()}`;
+
+        let sb = "";
+        sb += `STATISTIKAT PËR DATËN: ${dataSot}\n`;
+        sb += `===================================================\n\n`;
+        sb += `Numri total i porosive: ${stats.total_orders}\n`;
+        sb += `Totali i xhiros ditore: ${stats.total_revenue.toFixed(2)}€\n`;
+        sb += `Mesatarja për porosi:   ${stats.average_order.toFixed(2)}€\n\n`;
+
+        sb += `PËRMBLEDHJA SIPAS KAMARIERËVE:\n`;
+        sb += `---------------------------------------------------\n`;
+        if (!stats.waiter_stats || stats.waiter_stats.length === 0) {
+            sb += `(Nuk ka shitje të regjistruara për kamarierët)\n\n`;
         } else {
-            showToast("Dështoi arkëtimi!", 'danger');
+            stats.waiter_stats.forEach(w => {
+                const waiterPad = w.waiter_name.padEnd(16, ' ');
+                sb += `Kamarieri: ${waiterPad} | Porosi: ${String(w.total_orders).padStart(2, ' ')} | Xhiro: ${w.total_sales.toFixed(2).padStart(7, ' ')}€ | Mesatare: ${w.average_sales.toFixed(2)}€\n`;
+            });
+            sb += `\n`;
         }
+
+        sb += `DETAJET E POROSIVE:\n`;
+        sb += `---------------------------------------------------\n`;
+        if (!stats.orders || stats.orders.length === 0) {
+            sb += `(Nuk ka porosi të regjistruara)\n`;
+        } else {
+            stats.orders.forEach(p => {
+                const dateStr = p.created_at || '';
+                const waiterStr = (p.waiter_name || '').padEnd(14, ' ');
+                const tavStr = `Tavolina: ${String(p.table_number).padStart(2, ' ')}`;
+                const totStr = `Totali: ${p.total_amount.toFixed(2).padStart(7, ' ')}€`;
+                const statStr = `Statusi: ${p.status}`;
+                sb += `${dateStr} | ${waiterStr} | ${tavStr} | ${totStr} | ${statStr}\n`;
+            });
+        }
+
+        area.value = sb;
     } catch (e) {
-        showToast("Gabim: " + e.message, 'danger');
+        console.error("Gabim gjatë marrjes së statistikave:", e);
     }
 }
 
-function createPaymentModal() {
-    const modal = document.createElement('div');
-    modal.id = 'paymentModal';
-    modal.className = 'modal-overlay';
-    modal.innerHTML = `
-        <div class="modal-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                <h3 style="font-weight:800; color:#0f172a; display:flex; align-items:center; gap:8px;">
-                    <i class="bi bi-cash-coin" style="color:#10b981;"></i> Arkëtimi i Faturës
-                </h3>
-                <button onclick="closePaymentModal()" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#94a3b8;">&times;</button>
-            </div>
-
-            <div style="background:#f8fafc; border-radius:12px; padding:16px; text-align:center; margin-bottom:18px; border:1px solid #e2e8f0;">
-                <div style="font-size:0.85rem; font-weight:700; color:#64748b; text-transform:uppercase;">Totali për Pagesë</div>
-                <div id="modalTotalAmount" style="font-size:2.2rem; font-weight:800; color:#0f172a; margin-top:4px;">0.00 €</div>
-            </div>
-
-            <!-- BUTONAT E SHPEJTË TË KESHIT -->
-            <div style="margin-bottom:14px;">
-                <div style="font-size:0.82rem; font-weight:700; color:#64748b; margin-bottom:6px;">Prano Para të Gatshme:</div>
-                <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:8px;">
-                    <button type="button" class="cash-quick-btn" onclick="setQuickCash('exact')">E Saktë</button>
-                    <button type="button" class="cash-quick-btn" onclick="setQuickCash(5)">5 €</button>
-                    <button type="button" class="cash-quick-btn" onclick="setQuickCash(10)">10 €</button>
-                    <button type="button" class="cash-quick-btn" onclick="setQuickCash(20)">20 €</button>
-                    <button type="button" class="cash-quick-btn" onclick="setQuickCash(50)">50 €</button>
-                </div>
-            </div>
-
-            <div style="margin-bottom:16px;">
-                <label style="display:block; font-size:0.85rem; font-weight:700; color:#334155; margin-bottom:4px;">Shuma e Dhënë nga Klienti (€):</label>
-                <input type="number" step="0.50" id="cashGivenInput" oninput="calculateChange()" class="search-input" style="font-size:1.3rem; font-weight:800; text-align:center;" placeholder="0.00">
-            </div>
-
-            <!-- KUSURI -->
-            <div style="background:#ecfdf5; border-radius:10px; padding:12px; display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border:1px solid #a7f3d0;">
-                <span style="font-weight:700; color:#065f46;">Kusuri për t'u kthyer:</span>
-                <span id="changeReturnAmount" style="font-size:1.5rem; font-weight:800; color:#10b981;">0.00 €</span>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <button type="button" class="btn btn-outline" onclick="confirmPayment('Kartelë')">
-                    <i class="bi bi-credit-card"></i> Pagesë me Kartelë
-                </button>
-                <button type="button" class="btn btn-success" onclick="confirmPayment('Kesh')">
-                    <i class="bi bi-check2-circle"></i> Arkëto me Kesh
-                </button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
+// 13. FUNKSIONET NDIHMËSE PËR KUZHINËN & RAPORTET
+async function updateKitchenStatus(orderId, newStatus) {
+    await ndryshoStatusin(orderId, newStatus);
+    window.location.reload();
 }
 
-// Inicializimi në ngarkim
+async function deleteOrder(orderId) {
+    await fshiPorosine(orderId);
+    window.location.reload();
+}
+
+async function clearAllOrders() {
+    await pastroTeGjithaPorosite();
+    window.location.reload();
+}
+
+// 14. INICIALIZIMI ME NGARKIMIN E FAQES
 document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('cartItems')) {
-        initPOS();
+    // Caktojmë kategorinë e parë 'Pije' si aktive në POS
+    const firstCatBtn = document.querySelector('.cat-nav-btn');
+    if (firstCatBtn) {
+        switchCategory('Pije', firstCatBtn);
     }
-    if (window.location.pathname.includes('/kitchen')) {
-        startKitchenAutoRefresh();
+
+    // Kontrollojmë nëse URL ka parametër ?tab=...
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam) {
+        showTab(tabParam);
     }
+
+    // Ngarkojmë paraprakisht të dhënat e tabelës dhe statistikave
+    rifreskoTabelen();
+    perditesoStatistikat();
 });
