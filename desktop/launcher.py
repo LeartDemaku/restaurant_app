@@ -68,6 +68,9 @@ def get_desktop_app_command(url: str) -> Optional[List[str]]:
     Gjen rrugën e Microsoft Edge ose Google Chrome për të hapur dritaren
     në mënyrën 'App' (pa shirit kërkimi, pa tabs, si aplikacion i mirëfilltë desktop).
     """
+    # Profil i izoluar - shmang konflikte me Edge/Chrome ekzistuese
+    profile_dir = os.path.join(os.path.expandvars("%APPDATA%"), "StrictLoungeBar_EdgeProfile")
+
     # 1. Kandidatët për Microsoft Edge (i integruar në Windows 10 & 11)
     edge_candidates = [
         os.path.expandvars(r"%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"),
@@ -79,8 +82,10 @@ def get_desktop_app_command(url: str) -> Optional[List[str]]:
             return [
                 p,
                 f"--app={url}",
-                "--new-window",
-                "--window-size=1440,900"
+                f"--user-data-dir={profile_dir}",
+                "--window-size=1440,900",
+                "--no-first-run",
+                "--no-default-browser-check",
             ]
 
     # 2. Kandidatët për Google Chrome
@@ -94,8 +99,9 @@ def get_desktop_app_command(url: str) -> Optional[List[str]]:
             return [
                 p,
                 f"--app={url}",
-                "--new-window",
-                "--window-size=1440,900"
+                f"--user-data-dir={profile_dir}",
+                "--window-size=1440,900",
+                "--no-first-run",
             ]
 
     return None
@@ -105,30 +111,47 @@ def launch_desktop(target_url: Optional[str] = None):
     """
     Nis aplikacionin desktop:
     1. Siguron që serveri është aktiv.
-    2. Hap dritaren e aplikacionit 100% identike me uebin.
-    3. Mban procesin aktiv derisa përdoruesi të mbyllë dritaren.
+    2. Hap dritaren e aplikacionit si app të pavarur.
+    3. Mban serverin aktiv me loop deri sa ta ndalë përdoruesi.
     """
-    ensure_server_running()
+    alive = ensure_server_running()
+
+    if not alive:
+        print("❌ GABIM: Serveri nuk u nis. Kontrolloni requirements.txt")
+        input("Shtypni Enter për të dalë...")
+        return
 
     url = target_url or f"http://127.0.0.1:{WEB_PORT}"
     cmd = get_desktop_app_command(url)
 
+    print(f"🚀 Duke hapur {RESTAURANT_NAME}...")
+
     if cmd:
         try:
-            # Nisim dritaren si proces të pavarur dhe presim derisa të mbyllet
-            proc = subprocess.Popen(cmd)
-            proc.wait()
-            return
-        except Exception:
-            pass
+            # Hap Edge/Chrome dhe MOS prit - kjo zgjidh bug-un me Edge multi-process
+            subprocess.Popen(cmd)
+        except Exception as e:
+            print(f"⚠️  Edge/Chrome nuk u hap ({e}), duke u hapur në shfletues...")
+            webbrowser.open(url)
+    else:
+        # Fallback: shfletues i sistemit
+        webbrowser.open(url)
 
-    # Fallback në rast të jashtëzakonshëm: hapim në shfletuesin e sistemit
-    webbrowser.open(url)
+    print(f"✅ App është aktiv: {url}")
+    print("   (Mbylleni këtë dritare ose shtypni Ctrl+C për të ndalur serverin)")
+
+    # ─── Loop kryesor: mban serverin gjallë pa limit kohor ───────────────
+    # KRITIKE: pa këtë loop, thread-i daemon (uvicorn) vdes kur Python del!
     try:
         while True:
-            time.sleep(1)
+            time.sleep(5)
+            # Nëse serveri bie papritur, rinisim automatikisht
+            if not is_server_alive():
+                print("⚠️  Serveri u ndal papritur. Duke u rinis...")
+                ensure_server_running(max_wait_seconds=15.0)
     except KeyboardInterrupt:
-        pass
+        print(f"\n👋 {RESTAURANT_NAME} u mbyll.")
+        sys.exit(0)
 
 
 if __name__ == "__main__":
