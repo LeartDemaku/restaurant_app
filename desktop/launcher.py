@@ -34,7 +34,7 @@ def _run_uvicorn_server():
     server.run()
 
 
-def ensure_server_running(max_wait_seconds: float = 5.0) -> bool:
+def ensure_server_running(max_wait_seconds: float = 20.0) -> bool:
     """Siguron që serveri ueb është duke punuar; nëse jo, e nis në sfond."""
     seed_database()
 
@@ -46,12 +46,21 @@ def ensure_server_running(max_wait_seconds: float = 5.0) -> bool:
     server_thread.start()
 
     start_time = time.time()
+    dots = 0
     while time.time() - start_time < max_wait_seconds:
         if is_server_alive():
+            print(f"\n✅ Serveri u nis me sukses!")
             return True
-        time.sleep(0.15)
+        dots += 1
+        if dots % 7 == 0:
+            elapsed = int(time.time() - start_time)
+            print(f"   Duke pritur serverin... ({elapsed}s)")
+        time.sleep(0.2)
 
-    return is_server_alive()
+    alive = is_server_alive()
+    if not alive:
+        print("⚠️  Serveri nuk u nis brenda 20 sekondave. Duke provuar gjithsesi...")
+    return alive
 
 
 def get_desktop_app_command(url: str) -> Optional[List[str]]:

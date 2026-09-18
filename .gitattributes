@@ -1,0 +1,16 @@
+# ============================================================
+# GitHub Linguist - Konfigurim i Gjuhëve të Projektit
+# Python është gjuha kryesore e projektit.
+# HTML/CSS/JS janë template dhe asete statike të backend-it Python.
+# ============================================================
+
+# Shëno template-t HTML si vendored (nuk llogariten në statistikat e gjuhës)
+web/templates/*.html linguist-vendored=true
+
+# Shëno skedarët statike (CSS, JS) si vendored
+web/static/css/*.css linguist-vendored=true
+web/static/js/*.js   linguist-vendored=true
+
+# Shëno skedarët e konfigurimit dhe skriptave ndihmëse si dokumentacion
+*.bat linguist-detectable=false
+*.vbs linguist-detectable=false
