@@ -1,114 +1,172 @@
-# 🍽️ Sistemi i Menaxhimit të Restorantit në Python (Desktop POS & Web App)
+# 🍽️ Restaurant Management System (Python Desktop POS & Web App)
 
-Ky projekt është një sistem i plotë dhe profesional për menaxhimin e restorantit, i ndërtuar në **Python**, i cili integron:
-1. **Aplikacion Desktop Modern (CustomTkinter)** për arkën qendrore të restorantit.
-2. **Aplikacion Web & Mobile (FastAPI + HTML5/CSS)** për kamarierët me telefon/tablet dhe ekranin live të kuzhinës (KDS).
-3. **Bazë të Dhënash të Përbashkët (SQLite)** me sinkronizim të menjëhershëm mes arkës, kuzhinës dhe kamarierëve në tavolina.
+A professional, full-featured restaurant management and Point of Sale (POS) system built in **Python**, designed with high performance, a clean modern interface, and 100% design fidelity to the original Java POS architecture.
 
----
-
-## 🌟 Funksionalitetet Kryesore
-
-### 1. Kasa POS (Point of Sale) - Desktop & Web
-- Mbi **70+ artikuj autentikë** me çmime në Euro (€), të ndarë në 4 kategori kryesore me ngjyra përkatëse:
-  - 🔵 **Pije**: Pije të gazuara, ujëra, lëngje natyrale, birra, verëra, raki shtëpie.
-  - 🟤 **Kafe**: Espresso, macchiato, cappuccino, çajra bimorë, çokollata të ngrohta.
-  - 🔴 **Ushqim**: Sufllaqe, doner, qebapa, pleskavica, biftak, pica, burgere, pasta, sallata, supa.
-  - 🟠 **Embëlsirë**: Trileçe, bakllavë, tiramisu, cheesecake, soufflé, pulla, milkshake.
-- Shportë interaktive me shtim të shpejtë, rritje/zbritje të sasive me `+` dhe `-`.
-- Zgjedhje tavoline (1 deri 16) dhe përzgjedhje e kamarierit.
-- Llogaritje automatike e totalit të faturës.
-
-### 2. Menaxhimi i Porosive në Kohë Reale
-- Ndjekja e statusit të çdo porosie:
-  - 🔴 **E Re**: Porosia sapo është regjistruar nga kamarieri.
-  - 🟡 **Në Përgatitje**: Kuzhina po e përgatit porosinë.
-  - 🟢 **Gati**: Ushqimi/pija është gati për t'u shërbyer në tavolinë.
-  - ⚪ **E Përfunduar / Paguar**: Fatura është arkëtuar dhe tavolina lirohet automatikisht.
-
-### 3. Ekrani i Kuzhinës (KDS - Kitchen Display System)
-- Faqe ueb e posaçme (`/kitchen`) që përditësohet automatikisht çdo disa sekonda.
-- Kuzhinierët shohin kartat e porosive sipas radhës me kohën e porositjes dhe shënimet speciale.
-- Me 1 klikim ndryshohet statusi në "Në Përgatitje" dhe "Gati për Shërbim".
-
-### 4. Harta Vizuale e Tavolinave (`/tables`)
-- Pamje grafike e 16 tavolinave të sallës kryesore dhe verandës:
-  - 🟢 **E Gjelbër (E Lirë)**: Gati për mysafirë të rinj, hapje porosie me 1 klik.
-  - 🔴 **E Kuqe (E Zënë)**: Shfaq kamarierin përgjegjës dhe vlerën e faturës aktuale.
-  - 🟡 **E Verdhë (E Rezervuar)**.
-
-### 5. Faturimi dhe Printimi
-- Gjenerim fature termale (format 80mm/58mm).
-- Format fature HTML për printim direkt në çdo printer Windows ose ruajtje PDF.
-
-### 6. Menaxhimi i Menysë & Çmimeve
-- Shto artikuj të rinj, ndrysho çmimet, përditëso stokun, ose fshi artikuj pa prekur kodin.
-
-### 7. Statistikat & Raportet Ditore
-- Pasqyra e xhiros ditore në Euro (€), numri i porosive, dhe vlera mesatare për faturë.
-- Top 5 artikujt më të shitur të ditës.
-- Filtrimi i të dhënave sipas çdo date të dëshiruar.
+[![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com/)
+[![CustomTkinter](https://img.shields.io/badge/GUI-CustomTkinter-blue.svg)](https://github.com/TomSchimansky/CustomTkinter)
+[![Database](https://img.shields.io/badge/Database-SQLite-003B57.svg)](https://www.sqlite.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)]()
 
 ---
 
-## 🚀 Si të Niset Sistemi
+## 🌟 Architecture & Highlights
 
-### Mënyra 1: Nisja e Integruar (Rekomandohet)
-Nis njëkohësisht Desktop App-in në ekran dhe Web Serverin në prapaskenë:
+1. **Desktop Application (CustomTkinter)**: Ultra-responsive desktop cashier terminal for high-speed front-desk order processing.
+2. **Web Application (FastAPI + HTML5/CSS3/JS)**: Mobile-optimized web portal matching the original Java `GUI.java` layout 1:1, accessible by waiters via tablets/phones and by chefs via Kitchen Display.
+3. **Shared SQLite Database**: Instant synchronization between desktop registers, kitchen screens, and mobile devices.
+4. **Waiter Sales Tracking**: Waiters can enter their own name when taking orders, with comprehensive revenue tracking per waiter.
+
+---
+
+## 🚀 Key Features
+
+### 1. Point of Sale (POS) - Desktop & Web
+- **100% Visual Alignment with Java GUI**:
+  - 3-column button grid with solid category colors:
+    - 🔵 **Drinks (`#3498DB`)**: Sodas, mineral waters, natural juices, beers, wines, traditional spirits.
+    - 🟤 **Coffee (`#8D6E63`)**: Espresso, macchiato, cappuccino, herbal teas, hot chocolates.
+    - 🔴 **Food (`#E74C3C`)**: Gyros, doner, kebabs, pljeskavica, steaks, pizzas, burgers, pasta, salads, soups.
+    - 🟠 **Desserts (`#E67E22`)**: Trilece, baklava, tiramisu, cheesecake, soufflé, milkshakes.
+  - Rectangular buttons with bold white titles and golden-yellow prices (`#F39C12`).
+- **Current Order Panel**:
+  - Bordered panel with `Total: 0.00€` in prominent green (`#27AE60`, 22px).
+  - Clean monospace receipt view (`Consolas`) with fixed-column formatting:
+    ```text
+    Coca Cola 0.33l                 1.50€
+    Espresso Single                 1.00€
+    Sufllaqe me Pule                3.00€
+    ```
+  - **Quick Undo** button (`↶ Undo Last`) to easily revert the last selected item.
+  - Action buttons:
+    - **Print** (Blue): Generates a printable thermal-style receipt.
+    - **Clear** (Red): Clears current order and resets total to 0.00€.
+    - **Save Order** (Green): Prompts for waiter name and table number, persisting to SQLite database.
+
+### 2. Orders Management Tab
+- Real-time tabular view with columns: `Date`, `Waiter`, `Table`, `Total`, `Status`, `Actions`.
+- Live status updates with instant dropdown selection:
+  - 🔴 **New**: Order just received.
+  - 🟡 **In Preparation**: Kitchen has started preparing.
+  - 🟢 **Ready / Completed**: Ready to serve or paid.
+- Quick single-order deletion and a master **Clear All Orders** button.
+
+### 3. Kitchen Display System (KDS) (`/kitchen`)
+- Live kitchen board displaying active orders in real time.
+- Direct status transitions: "Prepare" ➔ "Ready" ➔ "Complete".
+- Displays customer notes, preparation timestamps, and table assignments.
+
+### 4. Interactive Table Map (`/tables`)
+- Visual overview of all restaurant tables across main hall and terrace:
+  - 🟢 **Green (Free)**: Available for new guests; one-click order creation.
+  - 🔴 **Red (Occupied)**: Displays waiter in charge and current running bill.
+  - 🟡 **Yellow (Reserved)**: Reserved tables.
+
+### 5. Daily Statistics & Reports (`/reports`)
+- Monospace ASCII & graphical financial breakdown:
+  - Total daily turnover (€).
+  - Total order count.
+  - Average ticket size.
+  - **Sales breakdown by waiter** (orders count, total revenue, average order value).
+  - Top 5 best-selling items of the day.
+
+---
+
+## 🛠️ Installation & Setup
+
+### Prerequisites
+- Python 3.10 or higher
+- Git
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/LeartDemaku/restaurant_app.git
+cd restaurant_app
+```
+
+### 2. Install dependencies
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 🏃 Running the Application
+
+### Method 1: All-in-One Launcher (Recommended)
+Launches the Desktop POS application and starts the local Web Server in the background:
 ```bash
 python main.py
 ```
-> Terminali do të shfaqë gjithashtu adresën lokale dhe një **QR Code** që kamarierët mund ta skanojnë me telefon për të hapur menjëherë sistemin!
+> **Tip**: The console will display a **QR Code** that staff can scan with a smartphone or tablet to immediately open the Web POS!
 
-### Mënyra 2: Nisja vetëm e Web Serverit
-Ideale nëse dëshironi ta përdorni sistemin nga shfletuesi në tablet/telefon:
+### Method 2: Web Server Only
+Ideal for running on a local server, Raspberry Pi, or tablet/mobile devices:
 ```bash
 python run_web.py
 ```
-Hapni në shfletues:
-- **POS / Kasa**: `http://localhost:8000/pos`
-- **Ekrani i Kuzhinës**: `http://localhost:8000/kitchen`
-- **Harta e Tavolinave**: `http://localhost:8000/tables`
-- **Menaxhimi i Menysë**: `http://localhost:8000/admin/menu`
-- **Statistikat**: `http://localhost:8000/reports`
+Open your browser at:
+- **POS Cashier**: `http://localhost:8000/pos`
+- **Kitchen Screen (KDS)**: `http://localhost:8000/kitchen`
+- **Table Map**: `http://localhost:8000/tables`
+- **Menu Management**: `http://localhost:8000/admin/menu`
+- **Financial Reports**: `http://localhost:8000/reports`
 
-### Mënyra 3: Nisja vetëm e Aplikacionit Desktop
+### Method 3: Desktop App Only
 ```bash
 python run_desktop.py
 ```
 
 ---
 
-## 📁 Struktura e Projektit
+## 📂 Project Directory Structure
 
 ```
-AppRestaurant/
+restaurant_app/
 ├── database/
-│   ├── db.py                 # Lidhja me SQLite dhe skema relacionale
-│   ├── models.py             # Funksionet e të dhënave (CRUD, porositë, faturat)
-│   └── seed_data.py          # Populimi fillestar i mbi 70 artikujve nga Java GUI
+│   ├── db.py                 # SQLite database connection & schema definitions
+│   ├── models.py             # CRUD data models (orders, menu items, waiters, tables)
+│   └── seed_data.py          # Database seeding with authentic menu items
 ├── core/
-│   ├── config.py             # Konfigurimet (titulli, monedha €, IP rrjeti)
-│   └── receipt.py            # Gjeneruesi i faturave termale dhe HTML
-├── web/
-│   ├── app.py                # Serveri kryesor FastAPI dhe REST API
-│   ├── static/
-│   │   ├── css/style.css     # Stilet moderne responsive
-│   │   └── js/app.js         # Ndërveprimi i shportës dhe rifreskimi automatik
-│   └── templates/
-│       ├── base.html         # Skeleti kryesor
-│       ├── pos.html          # Ndërfaqja POS për kamarierët
-│       ├── kitchen.html      # Ekrani live i kuzhinës (KDS)
-│       ├── tables.html       # Harta e tavolinave
-│       ├── admin_menu.html   # Menaxhimi i menusë
-│       └── reports.html      # Statistikat me grafikë
+│   ├── config.py             # Global configurations, currency (€), and local network IP
+│   └── receipt.py            # Monospace text & HTML receipt generators
 ├── desktop/
-│   ├── app_gui.py            # Aplikacioni kryesor Desktop me CustomTkinter
-│   ├── dialogs.py            # Dritaret modale (Ruaj porosi, shiko faturë, shto artikull)
-│   └── theme.py              # Temat dhe ngjyrat Dark/Light
-├── main.py                   # Nisësi qendror
-├── run_web.py                # Nisës vetëm për ueb
-├── run_desktop.py            # Nisës vetëm për desktop
-├── requirements.txt          # Paketat e nevojshme
-└── README.md                 # Ky dokumentacion
+│   ├── app_gui.py            # Desktop POS application built with CustomTkinter
+│   ├── dialogs.py            # Modal dialogs (Save Order, Payment, Change Calculator)
+│   └── theme.py              # Theme palette matching Java GUI colors
+├── web/
+│   ├── app.py                # FastAPI application & REST API endpoints
+│   ├── static/
+│   │   ├── css/style.css     # CSS styles matching Java GUI 1:1
+│   │   └── js/app.js         # Interactive cart, receipt formatting, and tab logic
+│   └── templates/
+│       ├── base.html         # Base template with header & main tabs
+│       ├── pos.html          # POS page (Orders, Management, Statistics tabs)
+│       ├── kitchen.html      # Kitchen Display System (KDS)
+│       ├── tables.html       # Visual Table Map
+│       ├── admin_menu.html   # Menu item management
+│       └── reports.html      # Analytics & reports page
+├── main.py                   # Unified launcher (Desktop GUI + Web Server + QR code)
+├── run_web.py                # Web server standalone runner
+├── run_desktop.py            # Desktop application standalone runner
+├── test_api.py               # Automated REST API & endpoint test suite
+├── test_system.py            # End-to-end database & receipt test suite
+├── requirements.txt          # Python project dependencies
+└── README.md                 # Project documentation
 ```
+
+---
+
+## 🧪 Testing
+
+Run the automated test suites to verify database integrity, API routes, and receipt generation:
+```bash
+python test_api.py
+python test_system.py
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License. Feel free to use, modify, and distribute it for personal and commercial restaurant operations.
