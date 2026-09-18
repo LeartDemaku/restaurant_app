@@ -74,6 +74,18 @@ class RestaurantAppGUI(ctk.CTk):
         )
         self.switch_theme.pack(side="right", padx=20, pady=10)
 
+        # Butoni per Ckycje nga modaliteti i administratorit
+        self.btn_logout = ctk.CTkButton(
+            header_frame,
+            text="🔒 Çkyçu",
+            width=85,
+            fg_color="#e74c3c",
+            hover_color="#c0392b",
+            font=FONT_BODY_BOLD,
+            command=self.lock_admin_mode
+        )
+        self.btn_logout.pack(side="right", padx=10, pady=10)
+
         # Web Server URL link
         lbl_web = ctk.CTkLabel(
             header_frame,
@@ -81,7 +93,13 @@ class RestaurantAppGUI(ctk.CTk):
             font=FONT_BODY_BOLD,
             text_color="#f1c40f"
         )
-        lbl_web.pack(side="right", padx=20, pady=10)
+        lbl_web.pack(side="right", padx=15, pady=10)
+
+    def lock_admin_mode(self):
+        """Kyç përsëri seksionet e mbrojtura dhe çkyç administratorin."""
+        self._is_admin_unlocked = False
+        self.tabview.set("🛒 Porositë (POS)")
+        messagebox.showinfo("Çkyçja", "U çkyçët me sukses! Menyja dhe Raportet u bllokuan me kod.")
 
     def _build_statusbar(self):
         status_frame = ctk.CTkFrame(self, height=30, fg_color="#eaedf0", corner_radius=0)
@@ -137,11 +155,11 @@ class RestaurantAppGUI(ctk.CTk):
             if not getattr(self, "_is_admin_unlocked", False):
                 dialog = ctk.CTkInputDialog(
                     title="Kodi i Sigurisë",
-                    text="Shënoni kodin e autorizimit (010626) për këtë seksion:"
+                    text="Shënoni kodin e autorizimit për këtë seksion:"
                 )
                 pin = dialog.get_input()
-                from core.config import SECURITY_PIN
-                if pin and pin.strip() == SECURITY_PIN:
+                from core.auth import verify_pin
+                if pin and verify_pin(pin):
                     self._is_admin_unlocked = True
                 else:
                     messagebox.showerror("E Ndaluar", "Kodi i sigurisë është i pasaktë!")

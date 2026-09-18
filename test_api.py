@@ -48,12 +48,16 @@ def test_endpoints():
     assert "pasaktë" in res.text
     print("Test POST /login me kod të gabuar: OK (Bllokuar me sukses)")
 
-    # 4d. Test POST /login me kodin e saktë 010626
-    res = client.post("/login", data={"pin": "010626", "next": "/reports"}, follow_redirects=False)
+    # 4d. Test POST /login me kodin e autorizuar
+    from dotenv import load_dotenv
+    import os
+    load_dotenv()
+    test_pin = os.getenv("SECURITY_PIN")
+    res = client.post("/login", data={"pin": test_pin, "next": "/reports"}, follow_redirects=False)
     assert res.status_code == 303
     auth_token = res.cookies.get("strict_admin_token")
     assert auth_token is not None
-    print("Test POST /login me kodin 010626: OK (Token u gjenerua)")
+    print("Test POST /login me autorizim: OK (Token u gjenerua)")
 
     # 4e. Test GET /reports dhe /admin/menu me kodin e autorizuar
     res = client.get("/reports", cookies={"strict_admin_token": auth_token})
@@ -63,7 +67,16 @@ def test_endpoints():
     res_menu = client.get("/admin/menu", cookies={"strict_admin_token": auth_token})
     assert res_menu.status_code == 200
     assert "Menaxhimi i Menysë" in res_menu.text
-    print("Test Qasja tek Menyja dhe Raportet me kodin 010626: OK (Status 200)")
+    print("Test Qasja tek Menyja dhe Raportet me autorizim: OK (Status 200)")
+
+    # 4f. Test Çkyçja (/logout)
+    res_logout = client.get("/logout", cookies={"strict_admin_token": auth_token}, follow_redirects=False)
+    assert res_logout.status_code == 303
+    # Verifikojmë që pas çkyçjes nuk mund të hyhet pa kod
+    res_after = client.get("/reports", follow_redirects=False)
+    assert res_after.status_code in [302, 303, 307]
+    assert "/login" in res_after.headers["location"]
+    print("Test Çkyçja (/logout): OK (Sistemi u bllokua me sukses pas çkyçjes)")
 
     # 5. Test API items
     res = client.get("/api/items")

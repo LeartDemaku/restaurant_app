@@ -33,6 +33,11 @@
             <a href="/reports" class="header-link">
                 <i class="bi bi-graph-up-arrow" style="color: #2ecc71;"></i> Raportet
             </a>
+            {% if is_authenticated %}
+            <a href="/logout?next=/pos" class="header-link" style="color: #ef4444; background: rgba(239, 68, 68, 0.16); border: 1px solid rgba(239, 68, 68, 0.45); padding: 5px 12px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;" title="Çkyçu dhe blloko menjëherë Menynë dhe Raportet">
+                <i class="bi bi-lock-fill"></i> Çkyçu
+            </a>
+            {% endif %}
         </div>
     </header>
 

@@ -97,7 +97,8 @@ async def process_login(
             value=token,
             max_age=12 * 3600,
             httponly=True,
-            samesite="lax"
+            samesite="lax",
+            path="/"
         )
         return response
     else:
@@ -115,16 +116,33 @@ async def process_login(
 
 
 @app.get("/logout")
-async def logout_view():
-    """Çkyçet nga sesioni i menaxhimit dhe kthehet tek POS."""
-    response = RedirectResponse(url="/pos", status_code=status.HTTP_303_SEE_OTHER)
-    response.delete_cookie(AUTH_COOKIE_NAME)
+async def logout_view(request: Request, next: Optional[str] = "/pos"):
+    """Çkyçet plotësisht nga sesioni i autorizuar dhe fshin të gjitha kukit."""
+    target_url = next or "/pos"
+    response = RedirectResponse(url=target_url, status_code=status.HTTP_303_SEE_OTHER)
+    response.delete_cookie(AUTH_COOKIE_NAME, path="/")
+    response.set_cookie(AUTH_COOKIE_NAME, "", max_age=0, expires=0, path="/")
     return response
+
+
+@app.post("/api/auth/logout")
+async def api_logout():
+    """Endpoint API për çkyçje të menjëhershme."""
+    response = JSONResponse(content={"status": "success", "message": "Çkyçja u krye me sukses"})
+    response.delete_cookie(AUTH_COOKIE_NAME, path="/")
+    response.set_cookie(AUTH_COOKIE_NAME, "", max_age=0, expires=0, path="/")
+    return response
+
+
+@app.get("/api/auth/status")
+async def api_auth_status(request: Request):
+    """Kthen gjendjen e autorizimit të sesionit."""
+    return {"authenticated": is_request_authenticated(request)}
 
 
 @app.post("/api/auth/verify-pin")
 async def api_verify_pin(payload: VerifyPinSchema):
-    """API endpoint për verifikimin e kodit nga modali JavaScript."""
+    """API endpoint për verifikimin e kodit nga JavaScript pa ekspozuar të dhëna."""
     if verify_pin(payload.pin):
         token = generate_auth_token()
         response = JSONResponse(content={"status": "success", "message": "Kodi është i saktë"})
@@ -133,7 +151,8 @@ async def api_verify_pin(payload: VerifyPinSchema):
             value=token,
             max_age=12 * 3600,
             httponly=True,
-            samesite="lax"
+            samesite="lax",
+            path="/"
         )
         return response
     else:
@@ -141,8 +160,12 @@ async def api_verify_pin(payload: VerifyPinSchema):
 
 
 @app.get("/pos", response_class=HTMLResponse)
-async def pos_page(request: Request):
+async def pos_page(request: Request, tab: Optional[str] = None):
     """Faqja e shitjes POS."""
+    auth = is_request_authenticated(request)
+    if tab == "statistikat" and not auth:
+        return RedirectResponse(url="/login?next=/pos?tab=statistikat")
+
     categories = models.get_categories()
     items = models.get_menu_items(active_only=True)
     tables = models.get_tables()
@@ -159,7 +182,8 @@ async def pos_page(request: Request):
             "items": items,
             "tables": tables,
             "staff": staff,
-            "pending_orders_count": len(pending_orders)
+            "pending_orders_count": len(pending_orders),
+            "is_authenticated": auth
         }
     )
 
@@ -177,7 +201,8 @@ async def kitchen_page(request: Request):
             "active_page": "kitchen",
             "restaurant_name": RESTAURANT_NAME,
             "orders": kitchen_orders,
-            "pending_orders_count": pending_count
+            "pending_orders_count": pending_count,
+            "is_authenticated": is_request_authenticated(request)
         }
     )
 
@@ -201,7 +226,8 @@ async def tables_page(request: Request):
             "active_page": "tables",
             "restaurant_name": RESTAURANT_NAME,
             "tables": tables,
-            "pending_orders_count": len(pending_orders)
+            "pending_orders_count": len(pending_orders),
+            "is_authenticated": is_request_authenticated(request)
         }
     )
 

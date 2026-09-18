@@ -300,22 +300,13 @@ function showTab(tabName) {
 
 async function handleTabClick(event, tabName) {
     if (tabName === 'statistikat') {
-        // Kontrollojmë nëse përdoruesi është i autorizuar me PIN
+        // Kontrollojmë nëse përdoruesi është i autorizuar
         try {
             const check = await fetch('/api/stats/daily');
             if (check.status === 401) {
                 event.preventDefault();
-                const pin = prompt("🔒 Kërkohet kodi i sigurisë për të parë Statistikat:");
-                if (!pin) return;
-                const verifyRes = await fetch('/api/auth/verify-pin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pin: pin.trim() })
-                });
-                if (!verifyRes.ok) {
-                    alert("❌ Kodi i sigurisë është i pasaktë!");
-                    return;
-                }
+                window.location.href = '/login?next=' + encodeURIComponent('/pos?tab=statistikat');
+                return;
             }
         } catch (e) {
             console.error(e);
@@ -407,19 +398,8 @@ async function pastroTeGjithaPorosite() {
     try {
         let res = await fetch('/api/orders/clear-all', { method: 'POST' });
         if (res.status === 401) {
-            const pin = prompt("🔒 Kërkohet kodi i sigurisë për pastrimin e të gjitha porosive:");
-            if (!pin) return;
-            const verifyRes = await fetch('/api/auth/verify-pin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pin: pin.trim() })
-            });
-            if (!verifyRes.ok) {
-                alert("❌ Kodi i sigurisë është i pasaktë!");
-                return;
-            }
-            // Riprovojmë pas verifikimit
-            res = await fetch('/api/orders/clear-all', { method: 'POST' });
+            window.location.href = '/login?next=' + encodeURIComponent('/reports');
+            return;
         }
         if (res.ok) {
             alert("Të gjitha porositë u fshinë me sukses!");
@@ -435,18 +415,16 @@ async function pastroTeGjithaPorosite() {
 
 // 15. STATISTIKAT DITORE (TAB 3: STATISTIKAT)
 async function rifreskoStatistikat() {
-    const pin = prompt("🔒 Kërkohet kodi i sigurisë për Statistikat:");
-    if (!pin) return;
-    const verifyRes = await fetch('/api/auth/verify-pin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pin: pin.trim() })
-    });
-    if (!verifyRes.ok) {
-        alert("❌ Kodi i sigurisë është i pasaktë!");
-        return;
+    try {
+        const res = await fetch('/api/stats/daily');
+        if (res.status === 401) {
+            window.location.href = '/login?next=' + encodeURIComponent('/pos?tab=statistikat');
+            return;
+        }
+        perditesoStatistikat();
+    } catch (e) {
+        console.error(e);
     }
-    perditesoStatistikat();
 }
 
 async function perditesoStatistikat() {
@@ -456,7 +434,7 @@ async function perditesoStatistikat() {
     try {
         const res = await fetch('/api/stats/daily');
         if (res.status === 401) {
-            area.value = "🔒 QASJE E MBROJTUR ME KOD (PIN)\n===================================================\nKërkohet kodi i autorizimit për të parë xhiron dhe statistikat.\nKlikoni butonin 'Rifresko Statistikat' më poshtë ose shkoni tek 'Raportet' për të shënuar kodin.";
+            area.value = "🔒 QASJE E MBROJTUR ME KOD\n===================================================\nKërkohet autorizim për të parë xhiron ditore dhe statistikat financiare.\nKlikoni butonin 'Rifresko Statistikat' ose shkoni tek 'Raportet' për t'u kyçur me kod.";
             return;
         }
         const stats = await res.json();

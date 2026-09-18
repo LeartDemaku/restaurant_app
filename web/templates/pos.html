@@ -112,11 +112,23 @@
 <!-- SKEDA 3: STATISTIKAT DITORE IDENTIKE ME GUI.JAVA -->
 <div id="panelStatistikat" class="tab-content-panel" style="display: none;">
     <div class="statistics-panel">
-        <div class="order-panel-title">Statistikat Ditore</div>
+        <div class="order-panel-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Statistikat Ditore</span>
+            {% if is_authenticated %}
+            <a href="/logout?next=/pos" class="btn-styled" style="background-color: #ef4444; color: white; text-decoration: none; padding: 6px 14px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;" title="Mbyll dhe blloko të dhënat me kod">
+                <i class="bi bi-lock-fill"></i> Çkyçu Tani
+            </a>
+            {% endif %}
+        </div>
         
         <textarea id="zonaStatistikat" class="statistics-textarea" readonly placeholder="Ngarkimi i statistikave ditore..."></textarea>
         
-        <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px;">
+            {% if is_authenticated %}
+            <a href="/logout?next=/pos" class="btn-styled" style="background-color: #ef4444; color: white; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;" title="Kyç të dhënat dhe çkyçu">
+                <i class="bi bi-lock-fill"></i> Kyç me Kod (Çkyçu)
+            </a>
+            {% endif %}
             <button type="button" class="btn-styled" style="background-color: var(--ngjyra-kryesore);" onclick="rifreskoStatistikat()">
                 <i class="bi bi-arrow-clockwise"></i> Rifresko Statistikat
             </button>

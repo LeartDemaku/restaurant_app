@@ -7,17 +7,21 @@ import hmac
 import hashlib
 import time
 from typing import Optional
-from core.config import SECURITY_PIN, SECRET_KEY
+from core.config import PIN_SHA256_HASH, SECURITY_PIN, SECRET_KEY
 
 AUTH_COOKIE_NAME = "strict_admin_token"
 SESSION_MAX_AGE_SECONDS = 12 * 3600  # 12 orë e vlefshme
 
 
 def verify_pin(input_pin: str) -> bool:
-    """Verifikon nëse kodi i dhënë përputhet me kodin zyrtar të sigurisë."""
+    """Verifikon nëse kodi i dhënë përputhet me kodin zyrtar të sigurisë pa ekspozuar kodin."""
     if not input_pin:
         return False
-    return input_pin.strip() == SECURITY_PIN
+    pin_clean = input_pin.strip()
+    if SECURITY_PIN and pin_clean == SECURITY_PIN:
+        return True
+    hashed = hashlib.sha256(pin_clean.encode("utf-8")).hexdigest()
+    return hmac.compare_digest(hashed, PIN_SHA256_HASH)
 
 
 def generate_auth_token() -> str:

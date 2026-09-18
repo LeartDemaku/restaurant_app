@@ -38,3 +38,7 @@ Desktop.ini
 *.db-wal
 *.db-shm
 *.db-journal
+
+# Environment & Secrets
+.env
+.env.*
