@@ -30,11 +30,40 @@ def test_endpoints():
     assert "Harta e Tavolinave" in res.text
     print("Test GET /tables: OK (Status 200)")
 
-    # 4. Test GET /reports
-    res = client.get("/reports")
+    # 4. Test GET /reports pa kod -> ridrejton tek /login
+    res = client.get("/reports", follow_redirects=False)
+    assert res.status_code in [302, 303, 307]
+    assert "/login" in res.headers["location"]
+    print("Test GET /reports (pa kod): OK (Ridrejtuar tek /login)")
+
+    # 4b. Test GET /admin/menu pa kod -> ridrejton tek /login
+    res = client.get("/admin/menu", follow_redirects=False)
+    assert res.status_code in [302, 303, 307]
+    assert "/login" in res.headers["location"]
+    print("Test GET /admin/menu (pa kod): OK (Ridrejtuar tek /login)")
+
+    # 4c. Test POST /login me kod të pasaktë (999999)
+    res = client.post("/login", data={"pin": "999999", "next": "/reports"})
+    assert res.status_code == 400
+    assert "pasaktë" in res.text
+    print("Test POST /login me kod të gabuar: OK (Bllokuar me sukses)")
+
+    # 4d. Test POST /login me kodin e saktë 010626
+    res = client.post("/login", data={"pin": "010626", "next": "/reports"}, follow_redirects=False)
+    assert res.status_code == 303
+    auth_token = res.cookies.get("strict_admin_token")
+    assert auth_token is not None
+    print("Test POST /login me kodin 010626: OK (Token u gjenerua)")
+
+    # 4e. Test GET /reports dhe /admin/menu me kodin e autorizuar
+    res = client.get("/reports", cookies={"strict_admin_token": auth_token})
     assert res.status_code == 200
     assert "Statistikat" in res.text
-    print("Test GET /reports: OK (Status 200)")
+
+    res_menu = client.get("/admin/menu", cookies={"strict_admin_token": auth_token})
+    assert res_menu.status_code == 200
+    assert "Menaxhimi i Menysë" in res_menu.text
+    print("Test Qasja tek Menyja dhe Raportet me kodin 010626: OK (Status 200)")
 
     # 5. Test API items
     res = client.get("/api/items")

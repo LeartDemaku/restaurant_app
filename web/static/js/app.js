@@ -298,7 +298,30 @@ function showTab(tabName) {
     }
 }
 
-function handleTabClick(event, tabName) {
+async function handleTabClick(event, tabName) {
+    if (tabName === 'statistikat') {
+        // Kontrollojmë nëse përdoruesi është i autorizuar me PIN
+        try {
+            const check = await fetch('/api/stats/daily');
+            if (check.status === 401) {
+                event.preventDefault();
+                const pin = prompt("🔒 Kërkohet kodi i sigurisë për të parë Statistikat:");
+                if (!pin) return;
+                const verifyRes = await fetch('/api/auth/verify-pin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pin: pin.trim() })
+                });
+                if (!verifyRes.ok) {
+                    alert("❌ Kodi i sigurisë është i pasaktë!");
+                    return;
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
     // Nëse paneli ekziston në faqe, ndërrojmë lokalisht pa reload
     const targetPanel = document.getElementById(tabName === 'porosite' ? 'panelPorosite' : (tabName === 'menaxhimi' ? 'panelMenaxhimi' : 'panelStatistikat'));
     if (targetPanel) {
@@ -382,11 +405,28 @@ async function fshiPorosine(orderId) {
 async function pastroTeGjithaPorosite() {
     if (!confirm("⚠️ KUJDES: A dëshironi të fshini TË GJITHA porositë nga sistemi? Asnjë porosi nuk do të mbetet.")) return;
     try {
-        const res = await fetch('/api/orders/clear-all', { method: 'POST' });
+        let res = await fetch('/api/orders/clear-all', { method: 'POST' });
+        if (res.status === 401) {
+            const pin = prompt("🔒 Kërkohet kodi i sigurisë për pastrimin e të gjitha porosive:");
+            if (!pin) return;
+            const verifyRes = await fetch('/api/auth/verify-pin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin: pin.trim() })
+            });
+            if (!verifyRes.ok) {
+                alert("❌ Kodi i sigurisë është i pasaktë!");
+                return;
+            }
+            // Riprovojmë pas verifikimit
+            res = await fetch('/api/orders/clear-all', { method: 'POST' });
+        }
         if (res.ok) {
             alert("Të gjitha porositë u fshinë me sukses!");
             rifreskoTabelen();
             perditesoStatistikat();
+        } else {
+            alert("Gabim gjatë fshirjes së porosive.");
         }
     } catch (e) {
         alert("Gabim: " + e.message);
@@ -394,7 +434,18 @@ async function pastroTeGjithaPorosite() {
 }
 
 // 15. STATISTIKAT DITORE (TAB 3: STATISTIKAT)
-function rifreskoStatistikat() {
+async function rifreskoStatistikat() {
+    const pin = prompt("🔒 Kërkohet kodi i sigurisë për Statistikat:");
+    if (!pin) return;
+    const verifyRes = await fetch('/api/auth/verify-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: pin.trim() })
+    });
+    if (!verifyRes.ok) {
+        alert("❌ Kodi i sigurisë është i pasaktë!");
+        return;
+    }
     perditesoStatistikat();
 }
 
@@ -404,6 +455,10 @@ async function perditesoStatistikat() {
 
     try {
         const res = await fetch('/api/stats/daily');
+        if (res.status === 401) {
+            area.value = "🔒 QASJE E MBROJTUR ME KOD (PIN)\n===================================================\nKërkohet kodi i autorizimit për të parë xhiron dhe statistikat.\nKlikoni butonin 'Rifresko Statistikat' më poshtë ose shkoni tek 'Raportet' për të shënuar kodin.";
+            return;
+        }
         const stats = await res.json();
 
         const now = new Date();

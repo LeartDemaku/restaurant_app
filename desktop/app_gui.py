@@ -36,6 +36,7 @@ class RestaurantAppGUI(ctk.CTk):
         self.current_cart: List[Dict[str, Any]] = []
         self.total_amount: float = 0.0
         self.selected_category: str = "Të Gjitha"
+        self._is_admin_unlocked: bool = False
 
         # Ndërtimi i UI
         self._build_header()
@@ -113,7 +114,7 @@ class RestaurantAppGUI(ctk.CTk):
     # ============================================================
 
     def _build_tabs(self):
-        self.tabview = ctk.CTkTabview(self, corner_radius=10)
+        self.tabview = ctk.CTkTabview(self, corner_radius=10, command=self._on_tab_change)
         self.tabview.pack(fill="both", expand=True, padx=15, pady=(5, 10))
 
         # Krijimi i skedave
@@ -128,6 +129,23 @@ class RestaurantAppGUI(ctk.CTk):
         self._build_tables_tab()
         self._build_menu_tab()
         self._build_stats_tab()
+
+    def _on_tab_change(self):
+        """Verifikon kodin e sigurisë para hapjes së Menysë ose Statistikave."""
+        current_tab = self.tabview.get()
+        if current_tab in ["📖 Menaxhimi i Menysë", "📊 Statistikat Ditore"]:
+            if not getattr(self, "_is_admin_unlocked", False):
+                dialog = ctk.CTkInputDialog(
+                    title="Kodi i Sigurisë",
+                    text="Shënoni kodin e autorizimit (010626) për këtë seksion:"
+                )
+                pin = dialog.get_input()
+                from core.config import SECURITY_PIN
+                if pin and pin.strip() == SECURITY_PIN:
+                    self._is_admin_unlocked = True
+                else:
+                    messagebox.showerror("E Ndaluar", "Kodi i sigurisë është i pasaktë!")
+                    self.tabview.set("🛒 Porositë (POS)")
 
     # ============================================================
     # TAB 1: POS / POROSITË

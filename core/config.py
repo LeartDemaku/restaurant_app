@@ -8,6 +8,10 @@ RESTAURANT_ADDRESS = "Rruga Kryesore, Prishtinë"
 RESTAURANT_PHONE = "+383 44 123 456"
 CURRENCY = "€"
 
+# Konfigurimet e Sigurisë (Kodi i Hyrjes për Meny dhe Raporte)
+SECURITY_PIN = "010626"
+SECRET_KEY = "strict_lounge_bar_super_secret_pin_key_2026"
+
 # Konfigurimet e Serverit
 WEB_HOST = "0.0.0.0"
 WEB_PORT = 8000

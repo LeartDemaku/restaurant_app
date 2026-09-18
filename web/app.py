@@ -13,6 +13,7 @@ from database import models
 from database.seed_data import seed_database
 from core.config import APP_NAME, RESTAURANT_NAME, CURRENCY
 from core.receipt import generate_html_receipt, generate_text_receipt
+from core.auth import verify_pin, generate_auth_token, is_authenticated_token, AUTH_COOKIE_NAME
 
 # Sigurohemi që baza e të dhënave është e inicializuar
 seed_database()
@@ -23,6 +24,12 @@ app = FastAPI(title=APP_NAME)
 # Montojmë skedarët statikë dhe shabllonet Jinja2
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+
+def is_request_authenticated(request: Request) -> bool:
+    """Kontrollon nëse përdoruesi ka shënuar kodin e saktë të sigurisë."""
+    token = request.cookies.get(AUTH_COOKIE_NAME)
+    return is_authenticated_token(token)
 
 
 # ==========================================
@@ -44,6 +51,10 @@ class CreateOrderSchema(BaseModel):
     payment_method: Optional[str] = "Kesh"
 
 
+class VerifyPinSchema(BaseModel):
+    pin: str
+
+
 # ==========================================
 # FAQET KRYESORE WEB (HTML UI)
 # ==========================================
@@ -51,6 +62,82 @@ class CreateOrderSchema(BaseModel):
 @app.get("/", response_class=RedirectResponse)
 async def root():
     return RedirectResponse(url="/pos")
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, next: Optional[str] = "/reports"):
+    """Faqja e autorizimit me kod (PIN) për Meny dhe Raporte."""
+    if is_request_authenticated(request):
+        return RedirectResponse(url=next or "/reports")
+    return templates.TemplateResponse(
+        request=request,
+        name="login.html",
+        context={
+            "active_page": "login",
+            "restaurant_name": RESTAURANT_NAME,
+            "next_url": next or "/reports",
+            "error": None
+        }
+    )
+
+
+@app.post("/login")
+async def process_login(
+    request: Request,
+    pin: str = Form(...),
+    next: Optional[str] = Form("/reports")
+):
+    """Përpunon verifikimin e kodit të sigurisë."""
+    target_url = next or "/reports"
+    if verify_pin(pin):
+        token = generate_auth_token()
+        response = RedirectResponse(url=target_url, status_code=status.HTTP_303_SEE_OTHER)
+        response.set_cookie(
+            key=AUTH_COOKIE_NAME,
+            value=token,
+            max_age=12 * 3600,
+            httponly=True,
+            samesite="lax"
+        )
+        return response
+    else:
+        return templates.TemplateResponse(
+            request=request,
+            name="login.html",
+            context={
+                "active_page": "login",
+                "restaurant_name": RESTAURANT_NAME,
+                "next_url": target_url,
+                "error": "Kodi i sigurisë është i pasaktë! Ju lutem provoni përsëri."
+            },
+            status_code=400
+        )
+
+
+@app.get("/logout")
+async def logout_view():
+    """Çkyçet nga sesioni i menaxhimit dhe kthehet tek POS."""
+    response = RedirectResponse(url="/pos", status_code=status.HTTP_303_SEE_OTHER)
+    response.delete_cookie(AUTH_COOKIE_NAME)
+    return response
+
+
+@app.post("/api/auth/verify-pin")
+async def api_verify_pin(payload: VerifyPinSchema):
+    """API endpoint për verifikimin e kodit nga modali JavaScript."""
+    if verify_pin(payload.pin):
+        token = generate_auth_token()
+        response = JSONResponse(content={"status": "success", "message": "Kodi është i saktë"})
+        response.set_cookie(
+            key=AUTH_COOKIE_NAME,
+            value=token,
+            max_age=12 * 3600,
+            httponly=True,
+            samesite="lax"
+        )
+        return response
+    else:
+        raise HTTPException(status_code=401, detail="Kodi i sigurisë është i pasaktë")
 
 
 @app.get("/pos", response_class=HTMLResponse)
@@ -121,7 +208,10 @@ async def tables_page(request: Request):
 
 @app.get("/admin/menu", response_class=HTMLResponse)
 async def admin_menu_page(request: Request):
-    """Menaxhimi i menusë."""
+    """Menaxhimi i menusë (Kërkon kod sigurie)."""
+    if not is_request_authenticated(request):
+        return RedirectResponse(url="/login?next=/admin/menu")
+
     items = models.get_menu_items(active_only=True)
     categories = models.get_categories()
     pending_orders = models.get_orders(status="E Re")
@@ -141,27 +231,37 @@ async def admin_menu_page(request: Request):
 
 @app.post("/admin/menu/add", response_class=RedirectResponse)
 async def admin_add_item(
+    request: Request,
     name: str = Form(...),
     category_id: int = Form(...),
     price: float = Form(...),
     stock_quantity: int = Form(100),
     description: str = Form("")
 ):
-    """Shton një artikull të ri nga forma e administratorit."""
+    """Shton një artikull të ri nga forma e administratorit (Kërkon kod sigurie)."""
+    if not is_request_authenticated(request):
+        return RedirectResponse(url="/login?next=/admin/menu")
+
     models.add_menu_item(name, category_id, price, stock_quantity, description)
     return RedirectResponse(url="/admin/menu", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.post("/admin/menu/delete/{item_id}", response_class=RedirectResponse)
-async def admin_delete_item(item_id: int):
-    """Fshin një artikull nga menyja."""
+async def admin_delete_item(request: Request, item_id: int):
+    """Fshin një artikull nga menyja (Kërkon kod sigurie)."""
+    if not is_request_authenticated(request):
+        return RedirectResponse(url="/login?next=/admin/menu")
+
     models.delete_menu_item(item_id)
     return RedirectResponse(url="/admin/menu", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.get("/reports", response_class=HTMLResponse)
 async def reports_page(request: Request, date: Optional[str] = None):
-    """Raportet dhe statistikat ditore."""
+    """Raportet dhe statistikat ditore (Kërkon kod sigurie)."""
+    if not is_request_authenticated(request):
+        return RedirectResponse(url="/login?next=/reports")
+
     target_date = date or datetime.now().strftime("%Y-%m-%d")
     stats = models.get_daily_statistics(target_date)
     pending_orders = models.get_orders(status="E Re")
@@ -269,12 +369,17 @@ async def api_post_delete_order(order_id: int):
 
 
 @app.post("/api/orders/clear-all")
-async def api_clear_all_orders():
-    """Fshin te gjitha porosite nga sistemi."""
+async def api_clear_all_orders(request: Request):
+    """Fshin te gjitha porosite nga sistemi (Kërkon kod sigurie)."""
+    if not is_request_authenticated(request):
+        raise HTTPException(status_code=401, detail="Kërkohet autorizim me kod")
     models.clear_all_orders()
     return RedirectResponse(url="/reports", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.get("/api/stats/daily")
-async def api_daily_stats(date: Optional[str] = None):
+async def api_daily_stats(request: Request, date: Optional[str] = None):
+    """Kthen statistikat ditore (Kërkon kod sigurie)."""
+    if not is_request_authenticated(request):
+        raise HTTPException(status_code=401, detail="Kërkohet autorizim me kod")
     return models.get_daily_statistics(date)
