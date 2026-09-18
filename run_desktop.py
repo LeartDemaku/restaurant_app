@@ -1,9 +1,9 @@
 """
-Nis vetëm Aplikacionin Desktop (CustomTkinter GUI).
-I përshtatshëm për arkën kryesore të restaurantit.
+Nis Aplikacionin Desktop (100% identik në çdo detaj me Uebin).
+I përshtatshëm për arkën kryesore dhe menaxhimin e restaurantit.
 """
 
-from desktop.app_gui import start_desktop_app
+from desktop.launcher import launch_desktop
 
 if __name__ == "__main__":
-    start_desktop_app()
+    launch_desktop()

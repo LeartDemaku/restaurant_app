@@ -925,9 +925,13 @@ class RestaurantAppGUI(ctk.CTk):
 
 
 def start_desktop_app():
-    """Nis aplikacionin desktop."""
-    app = RestaurantAppGUI()
-    app.mainloop()
+    """Nis aplikacionin desktop 100% identik me uebin."""
+    if "--legacy-gui" in sys.argv:
+        app = RestaurantAppGUI()
+        app.mainloop()
+    else:
+        from desktop.launcher import launch_desktop
+        launch_desktop()
 
 
 if __name__ == "__main__":

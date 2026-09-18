@@ -67,24 +67,16 @@ def main():
         print_banner_and_qr()
         uvicorn.run("web.app:app", host=WEB_HOST, port=WEB_PORT, reload=False)
 
-    elif "--desktop" in args or "--desktop-only" in args:
-        print(f"Duke nisur vetëm Desktop GUI për {RESTAURANT_NAME}...")
+    elif "--legacy-desktop" in args:
+        print(f"Duke nisur Legacy CustomTkinter GUI për {RESTAURANT_NAME}...")
         gui = RestaurantAppGUI()
         gui.mainloop()
 
     else:
-        # Mënyra e Integruar (Desktop App + Web Server paralel)
+        # Mënyra e Integruar (Desktop App 100% identik me Uebin + Qasje për Pajisje)
         print_banner_and_qr()
-
-        # Nisim serverin ueb në një thread të pavarur (daemon thread)
-        web_thread = threading.Thread(target=run_web_server, daemon=True)
-        web_thread.start()
-
-        time.sleep(0.6)  # Presim një moment që uvicorn të jetë gati
-
-        # Nisim aplikacionin Desktop në thread-in kryesor
-        gui = RestaurantAppGUI()
-        gui.mainloop()
+        from desktop.launcher import launch_desktop
+        launch_desktop()
 
 
 if __name__ == "__main__":
