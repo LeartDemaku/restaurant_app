@@ -317,6 +317,10 @@ class RestaurantAppGUI(ctk.CTk):
             self.current_cart = [i for i in self.current_cart if i["id"] != item_id]
         self.render_cart()
 
+    def remove_item_from_cart(self, item_id: int):
+        self.current_cart = [i for i in self.current_cart if i["id"] != item_id]
+        self.render_cart()
+
     def clear_cart(self):
         if not self.current_cart:
             return
@@ -356,20 +360,17 @@ class RestaurantAppGUI(ctk.CTk):
             )
             lbl_info.pack(side="left", padx=4)
 
-            # Butonat + dhe -
-            btn_minus = ctk.CTkButton(
+            # Butonat +, -, dhe fshirje
+            btn_del = ctk.CTkButton(
                 row_frame,
-                text="-",
+                text="✕",
                 width=28,
                 height=28,
-                fg_color="#95a5a6",
-                hover_color="#7f8c8d",
-                command=lambda id=item["id"]: self.change_cart_qty(id, -1)
+                fg_color=DANGER_COLOR,
+                hover_color=DANGER_HOVER,
+                command=lambda id=item["id"]: self.remove_item_from_cart(id)
             )
-            btn_minus.pack(side="right", padx=2)
-
-            lbl_qty = ctk.CTkLabel(row_frame, text=str(item["quantity"]), width=25, font=FONT_BODY_BOLD)
-            lbl_qty.pack(side="right", padx=2)
+            btn_del.pack(side="right", padx=(4, 2))
 
             btn_plus = ctk.CTkButton(
                 row_frame,
@@ -381,6 +382,20 @@ class RestaurantAppGUI(ctk.CTk):
                 command=lambda id=item["id"]: self.change_cart_qty(id, 1)
             )
             btn_plus.pack(side="right", padx=2)
+
+            lbl_qty = ctk.CTkLabel(row_frame, text=str(item["quantity"]), width=25, font=FONT_BODY_BOLD)
+            lbl_qty.pack(side="right", padx=2)
+
+            btn_minus = ctk.CTkButton(
+                row_frame,
+                text="-",
+                width=28,
+                height=28,
+                fg_color="#95a5a6",
+                hover_color="#7f8c8d",
+                command=lambda id=item["id"]: self.change_cart_qty(id, -1)
+            )
+            btn_minus.pack(side="right", padx=2)
 
         self.total_amount = total
         self.lbl_pos_total.configure(text=f"Totali: {total:.2f} €")

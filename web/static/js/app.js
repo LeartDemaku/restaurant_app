@@ -1,77 +1,135 @@
 // ==========================================================
 // SISTEMI I MENAXHIMIT TË RESTORANTIT - JAVASCRIPT KRYESOR
-// 100% Identik me sjelljen e aplikacionit origjinal GUI.java
+// Përfshin menaxhimin interaktiv të shportës (+, -, fshirje)
 // ==========================================================
 
 let currentOrderItems = [];
 let shumaTotale = 0.0;
 
-// Formatimi i rreshtit të faturës identik me String.format("%-28s %8s€\n", ...)
-function formatReceiptLine(name, price) {
-    let cleanName = name.length > 27 ? name.substring(0, 27) : name;
-    let padName = cleanName.padEnd(28, ' ');
-    let padPrice = price.toFixed(2).padStart(7, ' ');
-    return `${padName} ${padPrice}€\n`;
-}
-
 // 1. SHTIMI I ARTIKULLIT NË POROSI
 function shtoNePorosi(emri, cmimi, id = null) {
     cmimi = parseFloat(cmimi);
-    shumaTotale += cmimi;
-    currentOrderItems.push({ id: id, name: emri, price: cmimi });
-
-    const zona = document.getElementById('zonaPorosi');
-    const etiketa = document.getElementById('etiketaTotali');
-
-    if (zona) {
-        zona.value += formatReceiptLine(emri, cmimi);
-        zona.scrollTop = zona.scrollHeight;
+    
+    // Kontrollojmë nëse artikulli ekziston tashmë në porosi
+    const existingIndex = currentOrderItems.findIndex(it => it.name === emri);
+    if (existingIndex !== -1) {
+        currentOrderItems[existingIndex].quantity += 1;
+    } else {
+        currentOrderItems.push({
+            id: id,
+            name: emri,
+            price: cmimi,
+            quantity: 1
+        });
     }
-    if (etiketa) {
-        etiketa.textContent = `Totali: ${shumaTotale.toFixed(2)}€ `;
+
+    renderPorosiaAktuale();
+}
+
+// 2. NDRYSHIMI I SASISË SË ARTIKULLIT (+1 ose -1)
+function ndryshoSasi(index, delta) {
+    if (index >= 0 && index < currentOrderItems.length) {
+        currentOrderItems[index].quantity += delta;
+        if (currentOrderItems[index].quantity <= 0) {
+            currentOrderItems.splice(index, 1);
+        }
+        renderPorosiaAktuale();
     }
 }
 
-// 2. ANULIMI I ARTIKULLIT TË FUNDIT (UNDO)
+// 3. FSHIRJA E ARTIKULLIT NGA POROSIA
+function fshiArtikullNgaPorosia(index) {
+    if (index >= 0 && index < currentOrderItems.length) {
+        currentOrderItems.splice(index, 1);
+        renderPorosiaAktuale();
+    }
+}
+
+// 4. ANULIMI I VEPRIMIT TË FUNDIT (UNDO)
 function anuloTeFundit() {
     if (currentOrderItems.length === 0) return;
-    const removed = currentOrderItems.pop();
-    shumaTotale -= removed.price;
-    if (shumaTotale < 0.001) shumaTotale = 0.0;
-
-    const zona = document.getElementById('zonaPorosi');
-    const etiketa = document.getElementById('etiketaTotali');
-
-    let txt = "";
-    currentOrderItems.forEach(item => {
-        txt += formatReceiptLine(item.name, item.price);
-    });
-
-    if (zona) zona.value = txt;
-    if (etiketa) etiketa.textContent = `Totali: ${shumaTotale.toFixed(2)}€ `;
+    const lastItem = currentOrderItems[currentOrderItems.length - 1];
+    lastItem.quantity -= 1;
+    if (lastItem.quantity <= 0) {
+        currentOrderItems.pop();
+    }
+    renderPorosiaAktuale();
 }
 
-// 3. PASTRIMI I POROSISË AKTUALE
+// 5. PASTRIMI I TË GJITHË POROSISË
 function pastroPorosi() {
     currentOrderItems = [];
-    shumaTotale = 0.0;
-    const zona = document.getElementById('zonaPorosi');
-    const etiketa = document.getElementById('etiketaTotali');
-    if (zona) zona.value = "";
-    if (etiketa) etiketa.textContent = "Totali: 0.00€ ";
+    renderPorosiaAktuale();
 }
 
-// 4. PRINTIMI I FATURËS
+// 6. RENDERIMI VIZUAL I POROSISË AKTUALE
+function renderPorosiaAktuale() {
+    const listContainer = document.getElementById('orderItemsList');
+    const placeholder = document.getElementById('emptyOrderPlaceholder');
+    const labelTotali = document.getElementById('etiketaTotali');
+    const badgeCount = document.getElementById('orderItemCount');
+
+    // Llogarisim shumën totale dhe numrin e artikujve
+    shumaTotale = currentOrderItems.reduce((acc, it) => acc + (it.price * it.quantity), 0.0);
+    const totalArtikuj = currentOrderItems.reduce((acc, it) => acc + it.quantity, 0);
+
+    if (labelTotali) {
+        labelTotali.textContent = `Totali: ${shumaTotale.toFixed(2)}€ `;
+    }
+
+    if (badgeCount) {
+        badgeCount.textContent = `(${totalArtikuj} artikuj)`;
+    }
+
+    if (!listContainer) return;
+
+    if (currentOrderItems.length === 0) {
+        if (placeholder) placeholder.style.display = 'flex';
+        listContainer.innerHTML = '';
+        return;
+    }
+
+    if (placeholder) placeholder.style.display = 'none';
+
+    let html = '';
+    currentOrderItems.forEach((item, index) => {
+        const itemSubtotal = (item.price * item.quantity).toFixed(2);
+        html += `
+            <div class="order-row-item">
+                <div class="order-item-left">
+                    <span class="order-item-name" title="${item.name}">${item.name}</span>
+                    <span class="order-item-unit-price">${item.price.toFixed(2)}€ për copë</span>
+                </div>
+                <div class="order-item-controls">
+                    <button type="button" class="btn-qty btn-minus" onclick="ndryshoSasi(${index}, -1)" title="Zvogëlo sasinë">-</button>
+                    <span class="order-item-qty">${item.quantity}</span>
+                    <button type="button" class="btn-qty btn-plus" onclick="ndryshoSasi(${index}, 1)" title="Shto edhe një (+1)">+</button>
+                    <span class="order-item-subtotal">${itemSubtotal}€</span>
+                    <button type="button" class="btn-item-delete" onclick="fshiArtikullNgaPorosia(${index})" title="Fshi këtë artikull">
+                        <i class="bi bi-trash3-fill"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+
+    listContainer.innerHTML = html;
+
+    // Scrollim automatik në fund të listës kur shtohet artikull i ri
+    const scrollBox = document.getElementById('zonaPorosiContainer');
+    if (scrollBox) {
+        scrollBox.scrollTop = scrollBox.scrollHeight;
+    }
+}
+
+// 7. PRINTIMI I FATURËS
 function printoFaturen() {
-    const zona = document.getElementById('zonaPorosi');
-    const text = zona ? zona.value : "";
-    if (!text || !text.trim()) {
+    if (currentOrderItems.length === 0) {
         alert("Nuk ka porosi për të printuar!");
         return;
     }
 
-    const totalText = document.getElementById('etiketaTotali') ? document.getElementById('etiketaTotali').textContent : `Totali: ${shumaTotale.toFixed(2)}€`;
-    const printWindow = window.open('', '_blank', 'width=450,height=600');
+    const printWindow = window.open('', '_blank', 'width=460,height=620');
     if (!printWindow) {
         window.print();
         return;
@@ -79,6 +137,14 @@ function printoFaturen() {
 
     const now = new Date();
     const dataStr = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth()+1).padStart(2, '0')}-${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+    let lines = '';
+    currentOrderItems.forEach(item => {
+        const namePad = item.name.length > 22 ? item.name.substring(0, 22) : item.name.padEnd(23, ' ');
+        const qtyStr = `x${item.quantity}`.padStart(4, ' ');
+        const subtotalStr = `${(item.price * item.quantity).toFixed(2)}€`.padStart(9, ' ');
+        lines += `${namePad} ${qtyStr} ${subtotalStr}\n`;
+    });
 
     printWindow.document.write(`
         <!DOCTYPE html>
@@ -89,7 +155,7 @@ function printoFaturen() {
                 body {
                     font-family: 'Consolas', monospace;
                     font-size: 14px;
-                    padding: 20px;
+                    padding: 24px;
                     white-space: pre;
                     line-height: 1.5;
                     color: #000;
@@ -100,8 +166,10 @@ function printoFaturen() {
 === FATURË RESTORANTI ===
 Data: ${dataStr}
 ----------------------------------------
-${text}----------------------------------------
-${totalText}
+Artikulli                Sasia    Totali
+----------------------------------------
+${lines}----------------------------------------
+Totali i Faturës:           ${shumaTotale.toFixed(2)}€
 ========================================
 Faleminderit për vizitën tuaj!
         </body>
@@ -114,7 +182,7 @@ Faleminderit për vizitën tuaj!
     }, 250);
 }
 
-// 5. RUAJTJA E POROSISË (100% IDENTIKE ME JAVA GUI)
+// 8. RUAJTJA E POROSISË (100% IDENTIKE ME JAVA GUI)
 async function ruajPorosi() {
     if (shumaTotale === 0.0 || currentOrderItems.length === 0) {
         alert("Shto artikuj në porosi para ruajtjes!");
@@ -152,7 +220,7 @@ async function ruajPorosi() {
                 id: item.id || null,
                 name: item.name,
                 price: item.price,
-                quantity: 1,
+                quantity: item.quantity,
                 notes: ""
             })),
             notes: "",
@@ -180,7 +248,7 @@ async function ruajPorosi() {
     }
 }
 
-// 6. NDRYSHIMI I KATEGORISË SË ARTIKUJVE (Pije, Kafe, Ushqim, Embëlsirë)
+// 9. NDRYSHIMI I KATEGORISË SË ARTIKUJVE (Pije, Kafe, Ushqim, Embëlsirë)
 function switchCategory(catName, btnEl) {
     document.querySelectorAll('.cat-nav-btn').forEach(b => b.classList.remove('active'));
     if (btnEl) btnEl.classList.add('active');
@@ -196,7 +264,7 @@ function switchCategory(catName, btnEl) {
     });
 }
 
-// 7. TABET KRYESORE (Porositë, Menaxhimi, Statistikat)
+// 10. TABET KRYESORE (Porositë, Menaxhimi, Statistikat)
 function showTab(tabName) {
     // Fshehim të gjitha panelet
     const pPorosite = document.getElementById('panelPorosite');
@@ -240,7 +308,7 @@ function handleTabClick(event, tabName) {
     }
 }
 
-// 8. RIFRESKIMI I TABELËS SË POROSIVE (TAB 2: MENAXHIMI)
+// 11. RIFRESKIMI I TABELËS SË POROSIVE (TAB 2: MENAXHIMI)
 async function rifreskoTabelen() {
     const tbody = document.getElementById('tabelaPorosiveBody');
     if (!tbody) return;
@@ -280,7 +348,7 @@ async function rifreskoTabelen() {
     }
 }
 
-// 9. NDRYSHIMI I STATUSIT TË POROSISË
+// 12. NDRYSHIMI I STATUSIT TË POROSISË
 async function ndryshoStatusin(orderId, status) {
     try {
         const res = await fetch(`/api/orders/${orderId}/status?status=${encodeURIComponent(status)}`, {
@@ -294,7 +362,7 @@ async function ndryshoStatusin(orderId, status) {
     }
 }
 
-// 10. FSHIRJA E NJË POROSIE
+// 13. FSHIRJA E NJË POROSIE NGA TABELA
 async function fshiPorosine(orderId) {
     if (!confirm(`A jeni të sigurt që dëshironi ta fshini porosinë #${orderId}?`)) return;
     try {
@@ -310,7 +378,7 @@ async function fshiPorosine(orderId) {
     }
 }
 
-// 11. FSHIRJA E TË GJITHA POROSIVE
+// 14. FSHIRJA E TË GJITHA POROSIVE NGA SISTEMI
 async function pastroTeGjithaPorosite() {
     if (!confirm("⚠️ KUJDES: A dëshironi të fshini TË GJITHA porositë nga sistemi? Asnjë porosi nuk do të mbetet.")) return;
     try {
@@ -325,7 +393,7 @@ async function pastroTeGjithaPorosite() {
     }
 }
 
-// 12. STATISTIKAT DITORE (TAB 3: STATISTIKAT)
+// 15. STATISTIKAT DITORE (TAB 3: STATISTIKAT)
 function rifreskoStatistikat() {
     perditesoStatistikat();
 }
@@ -381,7 +449,7 @@ async function perditesoStatistikat() {
     }
 }
 
-// 13. FUNKSIONET NDIHMËSE PËR KUZHINËN & RAPORTET
+// 16. FUNKSIONET NDIHMËSE PËR KUZHINËN & RAPORTET
 async function updateKitchenStatus(orderId, newStatus) {
     await ndryshoStatusin(orderId, newStatus);
     window.location.reload();
@@ -397,13 +465,16 @@ async function clearAllOrders() {
     window.location.reload();
 }
 
-// 14. INICIALIZIMI ME NGARKIMIN E FAQES
+// 17. INICIALIZIMI ME NGARKIMIN E FAQES
 document.addEventListener('DOMContentLoaded', () => {
     // Caktojmë kategorinë e parë 'Pije' si aktive në POS
     const firstCatBtn = document.querySelector('.cat-nav-btn');
     if (firstCatBtn) {
         switchCategory('Pije', firstCatBtn);
     }
+
+    // Inicializojmë listën bosh të porosisë
+    renderPorosiaAktuale();
 
     // Kontrollojmë nëse URL ka parametër ?tab=...
     const urlParams = new URLSearchParams(window.location.search);
