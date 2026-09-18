@@ -79,10 +79,9 @@ async def pos_page(request: Request):
 
 @app.get("/kitchen", response_class=HTMLResponse)
 async def kitchen_page(request: Request):
-    """Ekrani i kuzhinës (KDS)."""
-    # Marrrim porositë aktive (jo ato të përfunduara)
-    all_orders = models.get_orders(limit=100)
-    active_orders = [o for o in all_orders if o["status"] not in ("E Përfunduar", "Anuluar")]
+    """Ekrani i kuzhinës (KDS) - shfaq vetëm porositë që kanë ushqim dhe vetëm artikujt e ushqimit."""
+    kitchen_orders = models.get_kitchen_orders(limit=100)
+    pending_count = len([o for o in kitchen_orders if o["status"] == "E Re"])
 
     return templates.TemplateResponse(
         request=request,
@@ -90,10 +89,16 @@ async def kitchen_page(request: Request):
         context={
             "active_page": "kitchen",
             "restaurant_name": RESTAURANT_NAME,
-            "orders": active_orders,
-            "pending_orders_count": len([o for o in active_orders if o["status"] == "E Re"])
+            "orders": kitchen_orders,
+            "pending_orders_count": pending_count
         }
     )
+
+
+@app.get("/api/kitchen/orders")
+async def api_get_kitchen_orders():
+    """API që kthen vetëm porositë për kuzhinë (vetëm me artikujt e ushqimit)."""
+    return models.get_kitchen_orders()
 
 
 @app.get("/tables", response_class=HTMLResponse)

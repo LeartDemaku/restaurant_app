@@ -78,12 +78,38 @@ def test_endpoints():
     assert res.status_code == 200
     print(f"Test DELETE /api/orders/{order_id}: OK")
 
-    # 10. Test Clear all orders
+    # 10. Test Kitchen Food Filter: porositë me pije nuk shfaqen në kuzhinë, kurse me ushqim shfaqet vetëm ushqimi
+    p_drinks = client.post("/api/orders", json={
+        "table_number": 3,
+        "waiter_name": "Test Pije",
+        "items": [{"name": "Coca Cola 0.33l", "price": 1.5, "quantity": 1, "notes": ""}]
+    }).json()["order_id"]
+
+    p_mix = client.post("/api/orders", json={
+        "table_number": 4,
+        "waiter_name": "Test Miks",
+        "items": [
+            {"name": "Fanta Orange 0.33l", "price": 1.5, "quantity": 1, "notes": ""},
+            {"name": "Pleskavicë Sharri", "price": 4.5, "quantity": 1, "notes": "e pjekur mire"}
+        ]
+    }).json()["order_id"]
+
+    kitchen_orders = models.get_kitchen_orders()
+    assert any(k["id"] == p_mix for k in kitchen_orders), "Porosia me ushqim duhet te shfaqet ne kuzhine"
+    assert not any(k["id"] == p_drinks for k in kitchen_orders), "Porosia vetem me pije NUK duhet te shfaqet ne kuzhine"
+
+    mix_k_order = next(k for k in kitchen_orders if k["id"] == p_mix)
+    mix_items = [i["item_name"] for i in mix_k_order["items"]]
+    assert "Pleskavicë Sharri" in mix_items
+    assert "Fanta Orange 0.33l" not in mix_items, "Pija nuk duhet te shfaqet ne kuzhine!"
+    print("Test Kitchen Food Filter: OK (Vetëm ushqimi shkon dhe shfaqet në kuzhinë)")
+
+    # 11. Test Clear all orders
     models.clear_all_orders()
     assert len(models.get_orders()) == 0
     print("Test clear_all_orders(): OK (Numri i porosive tani: 0)")
 
-    print("\n✅ TË GJITHA TESTET DHE FUNKSIONET E REJA (FSHIRJE, RESET, UI) KALUAN ME SUKSES!")
+    print("\n✅ TË GJITHA TESTET DHE FUNKSIONET E REJA (FSHIRJE, RESET, KUZHINË-FILTER) KALUAN ME SUKSES!")
 
 if __name__ == "__main__":
     test_endpoints()

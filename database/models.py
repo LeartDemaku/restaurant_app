@@ -170,6 +170,11 @@ def create_order(table_number: int, waiter_name: str, items: List[Dict[str, Any]
     for item in items:
         item_id = item.get("id")
         item_name = item.get("name", "Artikull")
+        if not item_id:
+            found = conn.execute("SELECT id FROM menu_items WHERE name = ? LIMIT 1", (item_name,)).fetchone()
+            if found:
+                item_id = found["id"]
+
         unit_price = float(item.get("price", 0.0))
         quantity = int(item.get("quantity", 1))
         subtotal = round(unit_price * quantity, 2)
@@ -197,7 +202,7 @@ def create_order(table_number: int, waiter_name: str, items: List[Dict[str, Any]
 
 
 def get_orders(status: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
-    """Merr listën e porosive bashkë me artikujt e tyre."""
+    """Merr listën e porosive bashkë me artikujt e tyre dhe kategorinë e secilit artikull."""
     conn = get_db_connection()
     query = "SELECT * FROM orders WHERE 1=1"
     params = []
@@ -214,12 +219,54 @@ def get_orders(status: Optional[str] = None, limit: int = 100) -> List[Dict[str,
 
     for o in orders:
         o_dict = dict(o)
-        items = conn.execute("SELECT * FROM order_items WHERE order_id = ?", (o_dict["id"],)).fetchall()
+        items = conn.execute("""
+            SELECT 
+                oi.*,
+                COALESCE(c.name, c2.name, '') AS category_name
+            FROM order_items oi
+            LEFT JOIN menu_items m ON oi.item_id = m.id
+            LEFT JOIN categories c ON m.category_id = c.id
+            LEFT JOIN menu_items m2 ON oi.item_name = m2.name
+            LEFT JOIN categories c2 ON m2.category_id = c2.id
+            WHERE oi.order_id = ?
+        """, (o_dict["id"],)).fetchall()
         o_dict["items"] = [dict(i) for i in items]
         result.append(o_dict)
 
     conn.close()
     return result
+
+
+def get_kitchen_orders(status: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
+    """
+    Merr vetëm porositë aktive që përmbajnë artikuj të kategorisë 'Ushqim',
+    dhe për secilën porosi filtron listën që në ekranin e kuzhinës të shfaqen VETËM artikujt e ushqimit!
+    Porositë pa ushqim (p.sh. vetëm pije apo kafe) nuk shfaqen fare në kuzhinë.
+    """
+    all_orders = get_orders(status=status, limit=limit)
+    kitchen_orders = []
+
+    for o in all_orders:
+        # Porositë e përfunduara ose të anuluara nuk shfaqen në ekranin e kuzhinës
+        if o.get("status") in ("E Përfunduar", "Anuluar"):
+            continue
+
+        # Filtrojmë vetëm artikujt e ushqimit
+        food_items = [
+            item for item in o.get("items", [])
+            if str(item.get("category_name", "")).strip().lower() == "ushqim"
+        ]
+
+        # Nëse porosia përmban të paktën një artikull ushqim, e dërgojmë në kuzhinë
+        if food_items:
+            o_copy = dict(o)
+            # Në kuzhinë shfaqen VETËM artikujt e ushqimit!
+            o_copy["items"] = food_items
+            o_copy["food_count"] = sum(int(it.get("quantity", 1)) for it in food_items)
+            o_copy["food_total"] = sum(float(it.get("subtotal", 0.0)) for it in food_items)
+            kitchen_orders.append(o_copy)
+
+    return kitchen_orders
 
 
 def get_order_by_id(order_id: int) -> Optional[Dict[str, Any]]:
@@ -231,7 +278,17 @@ def get_order_by_id(order_id: int) -> Optional[Dict[str, Any]]:
         return None
 
     o_dict = dict(order)
-    items = conn.execute("SELECT * FROM order_items WHERE order_id = ?", (order_id,)).fetchall()
+    items = conn.execute("""
+        SELECT 
+            oi.*,
+            COALESCE(c.name, c2.name, '') AS category_name
+        FROM order_items oi
+        LEFT JOIN menu_items m ON oi.item_id = m.id
+        LEFT JOIN categories c ON m.category_id = c.id
+        LEFT JOIN menu_items m2 ON oi.item_name = m2.name
+        LEFT JOIN categories c2 ON m2.category_id = c2.id
+        WHERE oi.order_id = ?
+    """, (order_id,)).fetchall()
     o_dict["items"] = [dict(i) for i in items]
     conn.close()
     return o_dict
